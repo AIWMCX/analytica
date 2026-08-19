@@ -1,6 +1,9 @@
 from __future__ import annotations
 
+from pathlib import Path
+
 from fastapi import FastAPI, HTTPException, status
+from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, Field
 
 from .domain import AnalysisReport
@@ -68,3 +71,10 @@ def get_analysis(analysis_id: str) -> AnalysisReport:
 def get_analysis_status(analysis_id: str) -> dict[str, str]:
     report = _get_report(analysis_id)
     return {"analysis_id": report.analysis_id, "status": report.status.value}
+
+
+# Mount the dependency-free R&D browser client after API routes so a single
+# uvicorn process exposes both the typed API and visual demonstrator.
+_WEB_DIR = Path(__file__).resolve().parents[3] / "apps" / "web-preview"
+if _WEB_DIR.exists():
+    app.mount("/", StaticFiles(directory=_WEB_DIR, html=True), name="web-preview")
