@@ -3,50 +3,79 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <meta name="description" content="Analytica R&D vertical slice: evidence-driven historical business intelligence." />
-  <title>Analytica — R&D Vertical Slice</title>
+  <meta name="description" content="Analytica workable MVP prototype — evidence-driven historical business intelligence." />
+  <meta name="theme-color" content="#071011" />
+  <title>Analytica — Workable MVP Prototype</title>
   <link rel="stylesheet" href="./styles.css" />
 </head>
 <body>
+  <a class="skip-link" href="#analysis-summary">Skip to analysis</a>
   <header class="topbar">
-    <a class="brand" href="#top" aria-label="Analytica home"><span class="brand-mark" aria-hidden="true">A</span><span>ANALYTICA</span></a>
-    <div class="topbar-actions"><span class="badge" data-testid="readiness-badge">R&D vertical slice</span><span class="market">U.S. launch scope</span></div>
+    <a class="brand" href="#top" aria-label="Analytica home">
+      <span class="brand-mark" aria-hidden="true"><span></span></span>
+      <span class="brand-word">ANALYTICA</span>
+    </a>
+    <div class="topbar-actions">
+      <span class="badge badge-live" data-testid="readiness-badge"><i></i> Workable MVP prototype</span>
+      <span class="badge badge-gated">Paid launch gated</span>
+      <span class="market">U.S.-first</span>
+    </div>
   </header>
 
   <main id="top">
     <section class="hero shell">
       <div class="hero-copy">
-        <p class="eyebrow">Evidence before prediction</p>
-        <h1>Learn from businesses like yours <span>before you risk your capital.</span></h1>
-        <p class="lede">Analytica reconstructs historical business trajectories, surfaces turning points, and turns evidence into practical lessons. This build uses synthetic data so the product logic can be validated without making unsupported claims about real companies.</p>
+        <p class="eyebrow">Historical intelligence → decision support</p>
+        <h1>See how businesses like yours <span>won, struggled, and adapted.</span></h1>
+        <p class="lede">Analytica reconstructs peer-company trajectories, exposes the evidence behind turning points, and converts patterns into practical actions before you commit capital.</p>
+        <div class="hero-proof" aria-label="Prototype capabilities">
+          <span>10-year trajectories</span><span>Evidence trace</span><span>Failure cases</span><span>Top 10 lessons</span>
+        </div>
+        <div class="prototype-note"><strong>Current R&D scope:</strong> Packaging manufacturing · New York · synthetic evidence fixture. The workflow is real; the company data is intentionally synthetic until lawful providers are connected.</div>
       </div>
-      <form id="analysis-form" class="analysis-card" aria-label="Run Analytica demonstrator">
-        <div class="field"><label for="business">Business activity</label><input id="business" name="business" value="Packaging manufacturing" /></div>
-        <div class="field"><label for="geography">Geography</label><input id="geography" name="geography" value="New York" /></div>
-        <button id="run-analysis" type="submit">Run evidence analysis <span aria-hidden="true">→</span></button>
-        <p class="microcopy">Canonical demonstrator: Packaging manufacturing / New York</p>
+
+      <form id="analysis-form" class="analysis-card" aria-label="Run Analytica MVP prototype">
+        <div class="analysis-card-head">
+          <div><span class="step-label">Prototype checkout</span><h2>Run an analysis</h2></div>
+          <div class="price"><strong>$1.00</strong><span>target price</span></div>
+        </div>
+        <div class="field"><label for="business">Business activity</label><input id="business" name="business" value="Packaging manufacturing" autocomplete="organization-title" /></div>
+        <div class="field"><label for="geography">Geography</label><input id="geography" name="geography" value="New York" autocomplete="address-level1" /></div>
+        <div class="field"><label for="email">Result email</label><input type="email" id="email" name="email" value="owner@example.com" autocomplete="email" required /></div>
+        <button id="run-analysis" type="submit"><span>Authorize demo + run analysis</span><span aria-hidden="true">→</span></button>
+        <p class="microcopy"><strong>No real charge in this build.</strong> The $1 checkout contract is implemented in prototype/demo mode so payment UX and API boundaries can be tested safely.</p>
+        <p id="form-error" class="form-error" role="alert" hidden></p>
       </form>
+    </section>
+
+    <section id="analysis-pipeline" class="shell pipeline-card" aria-live="polite" aria-labelledby="pipeline-title">
+      <div class="pipeline-head">
+        <div><p class="eyebrow">Analysis engine</p><h2 id="pipeline-title">Prototype processing pipeline</h2></div>
+        <div class="pipeline-meter"><strong id="pipeline-percent">100%</strong><span id="pipeline-stage">Analysis complete</span></div>
+      </div>
+      <div class="progress-track" aria-hidden="true"><span id="pipeline-bar" style="width:100%"></span></div>
+      <div id="pipeline-steps" class="pipeline-steps" aria-label="Analysis stages"></div>
     </section>
 
     <section id="analysis-summary" class="shell summary-section" aria-labelledby="summary-title">
       <div class="section-heading">
-        <div><p class="eyebrow">Analysis report</p><h2 id="summary-title">Packaging manufacturing — New York</h2></div>
-        <div class="status-stack"><span id="analysis-status" class="status-dot"><span aria-hidden="true"></span> COMPLETED</span><span id="readiness-label">R&D vertical slice — synthetic evidence only</span></div>
+        <div><p class="eyebrow">Decision report</p><h2 id="summary-title">Packaging manufacturing — New York</h2><p id="market-scope" class="subtle">United States — R&D fixture</p></div>
+        <div class="status-stack"><span id="analysis-status" class="status-dot"><span aria-hidden="true"></span> COMPLETED</span><span id="readiness-label">Workable MVP — synthetic evidence only</span></div>
       </div>
       <div id="cohort-kpis" class="kpi-grid" aria-label="Cohort summary"></div>
-      <div class="notice" role="note"><strong>Important:</strong> <span id="report-disclaimer">All companies and evidence in this demonstrator are synthetic.</span></div>
+      <div class="notice" role="note"><strong>Evidence boundary:</strong> <span id="report-disclaimer">All companies and evidence in this demonstrator are synthetic.</span></div>
     </section>
 
     <section class="shell workspace" aria-labelledby="trajectory-heading">
       <div class="map-card">
         <div class="card-heading">
-          <div><p class="eyebrow">Radial Business Trajectory Map</p><h2 id="trajectory-heading">Ten-year historical signal</h2></div>
+          <div><p class="eyebrow">Radial Business Trajectory Map</p><h2 id="trajectory-heading">Ten-year historical signal</h2><p id="active-company-summary" class="subtle">Select a peer trajectory to inspect.</p></div>
           <div class="legend" aria-label="Performance state legend"><span><i class="dot green"></i>Strong</span><span><i class="dot blue"></i>Stable</span><span><i class="dot yellow"></i>Caution</span><span><i class="dot red"></i>Distress</span></div>
         </div>
         <div id="trajectory-map" class="trajectory-stage">
-          <svg id="radial-map" viewBox="0 0 720 720" role="img" aria-labelledby="radial-title radial-desc" tabindex="0">
-            <title id="radial-title">Radial historical performance map for synthetic packaging companies</title>
-            <desc id="radial-desc">Each company has a radial trajectory. Distance from the center represents normalized modeled performance. Select a point to inspect evidence.</desc>
+          <svg id="radial-map" viewBox="0 0 760 760" role="img" aria-labelledby="radial-title radial-desc" tabindex="0">
+            <title id="radial-title">Radial historical performance map for the Analytica packaging fixture</title>
+            <desc id="radial-desc">Each peer has a ten-year radial trajectory. Greater distance from the center represents stronger normalized modeled performance. Select a year point to inspect enidence.</desc>
             <g id="radial-grid"></g><g id="radial-content"></g>
           </svg>
         </div>
@@ -54,29 +83,34 @@
       </div>
 
       <aside id="evidence-panel" class="evidence-card" aria-live="polite" aria-labelledby="evidence-title">
-        <p class="eyebrow">Evidence drilldown</p><h2 id="evidence-title">Select a trajectory point</h2>
-        <p id="evidence-intro" class="muted">Choose a company and year on the radial map to inspect what happened, confidence, and the supporting evidence record.</p>
+        <div class="evidence-head"><p class="eyebrow">Evidence drilldown</p><span class="evidence-badge">Traceable</span></div>
+        <h2 id="evidence-title">Select a trajectory point</h2>
+        <p id="evidence-intro" class="muted">Choose a company and year on the radial map to inspect the score, modeled risk, source record, normalized fact, and evidence confidence.</p>
         <div id="evidence-body"></div>
       </aside>
     </section>
 
-    <section class="shell findings-section"><div class="section-heading compact"><div><p class="eyebrow">Cross-company patterns</p><h2>What the fixture is teaching the product</h2></div></div><div id="findings-grid" class="findings-grid"></div></section>
+    <section class="shell findings-section" aria-labelledby="findings-title">
+      <div class="section-heading compact"><div><p class="eyebrow">Cross-company patterns</p><h2 id="findings-title">What changed outcomes in the fixture</h2></div><p class="section-note">Findings distinguish observation, correlation, evidence-supported explanation, and analytical inference.</p></div>
+      <div id="findings-grid" class="findings-grid"></div>
+    </section>
 
     <section id="lessons" class="shell lessons-section" aria-labelledby="lessons-title">
-      <div class="section-heading"><div><p class="eyebrow">Prioritized output</p><h2 id="lessons-title">Top lessons for the business decision</h2></div><p class="section-note">Every lesson carries a confidence class and evidence references. No unsupported recommendation should leave this layer.</p></div>
+      <div class="section-heading"><div><p class="eyebrow">Prioritized output</p><h2 id="lessons-title">Top 10 lessons for the business decision</h2></div><p class="section-note">Every lesson carries a confidence class and evidence references. Unsupported recommendations do not belong here.</p></div>
       <ol id="lesson-list" class="lesson-list"></ol>
     </section>
 
-    <section class="shell readiness-panel" aria-labelledby="readiness-title">
-      <div><p class="eyebrow">Technical state</p><h2 id="readiness-title">What is real now, and what still blocks paid launch</h2></div>
-      <div class="readiness-columns">
-        <div><h3>Working in this slice</h3><ul><li>Typed analysis and evidence contracts</li><li>Deterministic scoring trajectories</li><li>Radial interaction and evidence drilldown</li><li>Explicit confidence taxonomy</li><li>API contract and browser-visible report</li></ul></div>
-        <div><h3>Required before paid production</h3><ul><li>Real lawful company-data providers</li><li>Persistent PostgreSQL + asynchronous jobs</li><li>Authentication and tenant isolation</li><li>Payment/webhook implementation</li><li>Email delivery, observability, deployment and security hardening</li></ul></div>
+    <section id="technical-readiness" class="shell readiness-panel" aria-labelledby="readiness-title">
+      <div class="readiness-hero">
+        <div><p class="eyebrow">R&D technical state</p><h2 id="readiness-title">MVP progress you can inspect, not guess.</h2><p class="subtle">The prototype separates what is working now from what still blocks a paid public launch.</p></div>
+        <div class="readiness-score"><div class="score-ring"><strong id="readiness-percent">78%</strong></div><span>prototype completion</span></div>
       </div>
+      <div id="readiness-grid" class="readiness-grid"></div>
+      <div class="launch-gate"><div><span class="gate-label">Commercial gate</span><strong>Paid public launch: NOT YET</strong></div><p>Real lawful company data, tenant security, real payment webhooks, email delivery, production observability and deployment remain required. The current build is a workable technical/product prototype.</p></div>
     </section>
   </main>
 
-  <footer class="footer shell"><span>Analytica R&D v0.1</span><span>Historical intelligence first. Prediction only after validation.</span></footer>
+  <footer class="footer shell"><span>Analytica MVP prototype · v0.2</span><span>Evidence before prediction. Prediction only after historical validation.</span></footer>
   <script src="./demo-data.js"></script>
   <script src="./app.js" defer></script>
 </body>

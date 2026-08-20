@@ -1,57 +1,108 @@
+import tempfile
+import time
 import unittest
+from pathlib import Path
 
 from fastapi.testclient import TestClient
 
-from apps.api.app.main import app
+from apps.api.app.main import create_app
 
 
 class ApiContractTests(unittest.TestCase):
-    @classmethod
-    def setUpClass(cls):
-        cls.client = TestClient(app)
+    def setUp(self):
+        self.tempdir = tempfile.TemporaryDirectory()
+        self.app = create_app(db_path=Path(self.tempdir.name) / "api.db", stage_delay=0)
+        self.client = TestClient(self.app)
 
-    def test_health_reports_service_ready(self):
-        response = self.client.get('/health')
-        self.assertEqual(response.status_code, 200)
-        self.assertEqual(response.json()['status'], 'ok')
-        self.assertEqual(response.json()['service'], 'analytica-api')
+    def tearDown(self):
+        self.app.state.analysis_service.wait_for_all(timeout=2)
+        self.client.close()
+        self.tempdir.cleanup()
 
-    def test_create_canonical_demo_analysis(self):
+    def test_health_and_readiness_are_explicit(self):
+        health = self.client.get('/health')
+        self.assertEqual(health.status_code, 200)
+        self.assertEqual(health.json()['status'], 'ok')
+        readiness = self.client.get('/readiness')
+        self.assertEqual(readiness.status_code, 200)
+        body = readiness.json()
+        self.assertEqual(body['product_stage'], 'workable_mvp_prototype')
+        self.assertFalse(body['paid_public_launch_ready'])
+        self.assertGreaterEqual(body['prototype_completion_percent'], 70)
+
+    def test_demo_payment_checkout_returns_one_dollar_authorization(self):
+        response = self.client.post('/payments/checkout', json={'email': 'owner@example.com'})
+        self.assertEqual(response.status_code, 201)
+        body = response.json()
+        self.assertEqual(body['amount_cents'], 100)
+        self.assertEqual(body['currency'], 'USD')
+        self.assertEqual(body['mode'], 'prototype_demo')
+        self.assertTrue(body['payment_token'].startswith('demo_pay_'))
+        self.assertFalse(body['real_charge'])
+
+    def test_create_analysis_requires_demo_payment_and_email(self):
+        payment = self.client.post('/payments/checkout', json={'email': 'owner@example.com'}).json()
         response = self.client.post('/analyses', json={
             'business_activity': 'Packaging manufacturing',
             'geography': 'New York',
+            'email': 'owner@example.com',
+            'payment_token': payment['payment_token'],
         })
-        self.assertEqual(response.status_code, 201)
+        self.assertEqual(response.status_code, 202)
         body = response.json()
-        self.assertEqual(body['analysis_id'], 'demo_packaging_ny_v1')
-        self.assertEqual(body['status'], 'COMPLETED')
-        self.assertIn('/analyses/demo_packaging_ny_v1', body['report_url'])
+        self.assertTrue(body['analysis_id'].startswith('ana_'))
+        self.assertIn(body['status'], {'QUEUED', 'DISCOVERING_COMPANIES', 'COMPLETED'})
+        self.assertIn('/analyses/', body['report_url'])
 
-    def test_get_report_returns_evidence_backed_fixture(self):
-        self.client.post('/analyses', json={
+    def test_status_progress_and_report_complete_end_to_end(self):
+        payment = self.client.post('/payments/checkout', json={'email': 'owner@example.com'}).json()
+        created = self.client.post('/analyses', json={
             'business_activity': 'Packaging manufacturing',
             'geography': 'New York',
+            'email': 'owner@example.com',
+            'payment_token': payment['payment_token'],
+        }).json()
+        analysis_id = created['analysis_id']
+        deadline = time.time() + 2
+        while time.time() < deadline:
+            status_response = self.client.get(f'/analyses/{analysis_id}/status')
+            self.assertEqual(status_response.status_code, 200)
+            job = status_response.json()
+            if job['status'] == 'COMPLETED':
+                break
+            time.sleep(0.01)
+        self.assertEqual(job['progress_percent'], 100)
+        report = self.client.get(f'/analyses/{analysis_id}')
+        self.assertEqual(report.status_code, 200)
+        body = report.json()
+        self.assertEqual(body['analysis_id'], analysis_id)
+        self.assertEqual(len(body['lessons']), 10)
+        self.assertEqual(body['data_mode'], 'synthetic_fixture')
+
+    def test_invalid_payment_token_is_rejected(self):
+        response = self.client.post('/analyses', json={
+            'business_activity': 'Packaging manufacturing',
+            'geography': 'New York',
+            'email': 'owner@example.com',
+            'payment_token': 'not-valid',
         })
+        self.assertEqual(response.status_code, 402)
+
+    def test_unsupported_market_is_transparently_rejected(self):
+        payment = self.client.post('/payments/checkout', json={'email': 'owner@example.com'}).json()
+        response = self.client.post('/analyses', json={
+            'business_activity': 'Coffee shop',
+            'geography': 'California',
+            'email': 'owner@example.com',
+            'payment_token': payment['payment_token'],
+        })
+        self.assertEqual(response.status_code, 422)
+        self.assertIn('Packaging manufacturing / New York', response.json()['detail'])
+
+    def test_canonical_demo_report_remains_available_for_static_preview(self):
         response = self.client.get('/analyses/demo_packaging_ny_v1')
         self.assertEqual(response.status_code, 200)
-        body = response.json()
-        self.assertEqual(body['readiness_label'], 'R&D vertical slice — synthetic evidence only')
-        self.assertGreaterEqual(len(body['evidence']), 1)
-        self.assertGreaterEqual(len(body['lessons']), 6)
-
-    def test_status_endpoint_returns_explicit_state(self):
-        self.client.post('/analyses', json={
-            'business_activity': 'Packaging manufacturing',
-            'geography': 'New York',
-        })
-        response = self.client.get('/analyses/demo_packaging_ny_v1/status')
-        self.assertEqual(response.status_code, 200)
-        self.assertEqual(response.json()['status'], 'COMPLETED')
-
-    def test_unknown_analysis_returns_404(self):
-        response = self.client.get('/analyses/not-real')
-        self.assertEqual(response.status_code, 404)
-        self.assertEqual(response.json()['detail'], 'analysis not found')
+        self.assertEqual(response.json()['analysis_id'], 'demo_packaging_ny_v1')
 
 
 if __name__ == '__main__':

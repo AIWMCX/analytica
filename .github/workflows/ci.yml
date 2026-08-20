@@ -1,0 +1,50 @@
+name: Analytica CI
+
+on:
+  push:
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.13'
+          cache: pip
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - name: Install Python dependencies
+        run: python -m pip install --upgrade pip && pip install -r requirements.txt
+
+      - name: Rebuild deterministic browser fixture
+        run: python3 scripts/build_demo_data.py
+
+      - name: Rebuild deterministic visual snapshot
+        run: python3 scripts/build_visual_snapshot.py
+
+      - name: Run Python API/domain/service/repository tests
+        env:
+          PYTHONWARNINGS: error::ResourceWarning
+        run: python3 -m unittest discover -s apps/api/tests -v
+
+      - name: Run browser contract tests
+        run: node --test apps/web-preview/tests/test_ui_contract.mjs
+
+      - name: Run repository/readiness contract tests
+        run: python3 -m unittest tests.test_repository_contract -v
+
+      - name: Compile Python sources
+        run: python3 -m compileall -q apps scripts tests

@@ -1,9 +1,10 @@
 from __future__ import annotations
 
+from datetime import datetime, timezone
 from enum import Enum
 from typing import Literal
 
-from pydantic import BaseModel, Field, model_validator
+from pydantic import BaseModel, Field, field_validator, model_validator
 
 
 class AnalysisStatus(str, Enum):
@@ -103,6 +104,7 @@ class AnalysisReport(BaseModel):
     geography: str
     market_scope: str
     status: AnalysisStatus
+    data_mode: Literal["synthetic_fixture"] = "synthetic_fixture"
     readiness_label: str
     disclaimer: str
     cohort: CohortSummary
@@ -110,3 +112,39 @@ class AnalysisReport(BaseModel):
     evidence: list[EvidenceItem]
     findings: list[Finding]
     lessons: list[Lesson]
+
+    @model_validator(mode="after")
+    def validate_evidence_links(self):
+        evidence_ids = {item.evidence_id for item in self.evidence}
+        for finding in self.findings:
+            if not set(finding.evidence_ids).issubset(evidence_ids):
+                raise ValueError(f"finding {finding.finding_id} references unknown evidence")
+        for lesson in self.lessons:
+            if not set(lesson.evidence_ids).issubset(evidence_ids):
+                raise ValueError(f"lesson {lesson.priority} references unknown evidence")
+        return self
+
+
+class AnalysisJob(BaseModel):
+    analysis_id: str
+    business_activity: str
+    geography: str
+    email: str
+    payment_token: str
+    status: AnalysisStatus = AnalysisStatus.QUEUED
+    progress_percent: int = Field(default=0, ge=0, le=100)
+    stage_label: str = "Queued"
+    created_at: str
+    updated_at: str
+
+    @field_validator("email")
+    @classmethod
+    def validate_email(cls, value: str) -> str:
+        value = value.strip().lower()
+        if "@" not in value or value.startswith("@") or value.endswith("@"):
+            raise ValueError("valid email is required")
+        return value
+
+
+def utc_now_iso() -> str:
+    return datetime.now(timezone.utc).isoformat()
