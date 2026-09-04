@@ -1,0 +1,9 @@
+# Generated, dependency, and local runtime material does not belong in the architecture graph.
+.git/
+.venv/
+.tools/
+.data/
+__pycache__/
+node_modules/
+dist/
+graphify-out/cache/
