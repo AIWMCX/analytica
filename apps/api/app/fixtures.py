@@ -10,7 +10,14 @@ from .domain import (
     Finding,
     Lesson,
     TrajectoryPoint,
+    DecisionBrief,
+    FinancialScenarioSummary,
+    SensitivityDriverSummary,
+    AssumptionRegisterItem,
+    SystemStatusItem,
+    RealDemoItem,
 )
+from .financial import FinancialModelInput, QuantisFinancialPort
 
 
 def _state(score: float) -> str:
@@ -72,6 +79,13 @@ def build_demo_report(analysis_id: str = "demo_packaging_ny_v1", business_activi
         Lesson(priority=9, title="Prefer reversible early-stage commitments", action="Choose leases, pilots, and staged contracts where uncertainty is still high.", confidence=ConfidenceClass.ANALYTICAL_INFERENCE, evidence_ids=["ev_hudson_2022_restructure", "ev_liberty_2024_automation"]),
         Lesson(priority=10, title="Demand evidence for every recommendation", action="Do not act on an Analytica lesson unless its evidence and confidence level are visible and acceptable.", confidence=ConfidenceClass.VERIFIED_OBSERVATION, evidence_ids=["ev_northstar_2021_margin", "ev_empire_2022_loss"]),
     ]
+    financial_port = QuantisFinancialPort(model_version="quantis-compatible.demo.v1")
+    financial_input = FinancialModelInput(
+        capex=350000, monthly_capacity_revenue=420000, utilization=0.71,
+        gross_margin=0.31, monthly_fixed_cost=69000, available_cash=510000,
+    )
+    scenarios = financial_port.run_scenarios(financial_input)
+    sensitivity = financial_port.run_sensitivity(financial_input)
     return AnalysisReport(
         analysis_id=analysis_id,
         business_activity=business_activity,
@@ -86,4 +100,50 @@ def build_demo_report(analysis_id: str = "demo_packaging_ny_v1", business_activi
         evidence=evidence,
         findings=findings,
         lessons=lessons,
+        decision_brief=DecisionBrief(
+            decision="Add a second packaging production line",
+            capital_exposed=350000,
+            deadline="Owner demonstration — not a live recommendation",
+            recommendation="LEASE / VALIDATE BEFORE BUYING",
+            recommendation_status="fixture_demonstrator",
+            proceed_if="Sustained utilization exceeds 78% and the downside case remains cash-positive.",
+            wait_if="Utilization remains between 63% and 78% or evidence coverage remains incomplete.",
+            avoid_if="Utilization falls below 63% or gross margin falls below 26%.",
+        ),
+        financial_scenarios=[FinancialScenarioSummary(
+            name=item.name,
+            monthly_revenue=item.monthly_revenue,
+            operating_profit=item.operating_profit,
+            break_even_utilization=item.break_even_utilization,
+            payback_months=item.payback_months,
+            runway_months=item.runway_months,
+            reconciliation_passed=item.reconciliation.passed,
+        ) for item in scenarios],
+        sensitivity=[SensitivityDriverSummary(driver=item.driver, profit_swing=item.profit_swing) for item in sensitivity],
+        assumptions=[
+            AssumptionRegisterItem(metric="Capital expenditure", value="$350,000", origin="CUSTOMER_INPUT", review_status="ACCEPTED"),
+            AssumptionRegisterItem(metric="Expected utilization", value="71%", origin="ANALYST_ASSUMPTION", review_status="ACCEPTED", evidence_ids=["ev_liberty_2024_automation"]),
+            AssumptionRegisterItem(metric="Gross margin", value="31%", origin="BENCHMARK", review_status="ACCEPTED", evidence_ids=["ev_northstar_2023_mix"]),
+            AssumptionRegisterItem(metric="Input-cost inflation", value="11%", origin="SOURCE_ESTIMATE", review_status="PROPOSED", evidence_ids=["ev_northstar_2021_margin"]),
+            AssumptionRegisterItem(metric="Break-even utilization", value=f"{scenarios[1].break_even_utilization:.1%}", origin="DERIVED_CALCULATION", review_status="CALCULATED"),
+        ],
+        system_status=[
+            SystemStatusItem(capability="Analytica report UI", state="working", truth="Browser-visible and interactive"),
+            SystemStatusItem(capability="Predicta API contract", state="working", truth="predicta.search.v1; local production baseline verified"),
+            SystemStatusItem(capability="EvidencePacket / firewall", state="working", truth="analytica.evidence.v1 with immutable hashes and approval gate"),
+            SystemStatusItem(capability="Quantis FinancialPort", state="fixture", truth="Deterministic compatible demonstrator; external Quantis deployment not connected"),
+            SystemStatusItem(capability="Real company evidence", state="blocked", truth="Current owner demo remains explicitly synthetic"),
+            SystemStatusItem(capability="Human QA workflow", state="next", truth="Contract defined; reviewer console not implemented"),
+            SystemStatusItem(capability="Payments", state="prototype", truth="$1 demo authorization only; no real charge"),
+            SystemStatusItem(capability="Production deployment", state="blocked", truth="Auth, tenancy, jobs, telemetry and security gates remain"),
+        ],
+        real_demo_matrix=[
+            RealDemoItem(capability="Interactive UI and radial trajectory", state="REAL PROTOTYPE"),
+            RealDemoItem(capability="Predicta versioned contract", state="REAL / LOCAL"),
+            RealDemoItem(capability="EvidencePacket and financial firewall", state="REAL / TESTED"),
+            RealDemoItem(capability="Scenario mathematics", state="REAL / DETERMINISTIC FIXTURE"),
+            RealDemoItem(capability="Company and peer evidence", state="SYNTHETIC FIXTURE"),
+            RealDemoItem(capability="Human approval", state="NOT IMPLEMENTED"),
+            RealDemoItem(capability="Paid production access", state="BLOCKED"),
+        ],
     )

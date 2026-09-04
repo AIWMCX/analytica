@@ -22,7 +22,7 @@ test('commercial prototype flow includes email and one-dollar demo checkout', ()
 });
 
 test('contains processing pipeline and technical readiness regions', () => {
-  for (const id of ['analysis-pipeline', 'analysis-summary', 'cohort-kpis', 'trajectory-map', 'evidence-panel', 'lessons', 'technical-readiness']) {
+  for (const id of ['analysis-pipeline', 'analysis-summary', 'decision-brief', 'evidence-quality', 'scenario-comparison', 'assumption-register', 'cohort-kpis', 'trajectory-map', 'evidence-panel', 'lessons', 'technical-readiness', 'technical-command-center', 'verification-strip', 'real-demo-matrix']) {
     assert.ok(html.includes(`id="${id}"`), `missing ${id}`);
   }
   assert.ok(js.includes('/readiness'));
@@ -48,7 +48,7 @@ test('responsive CSS includes desktop and mobile breakpoints', () => {
 });
 
 test('client renders report, radial trajectories, findings, lessons, and readiness', () => {
-  for (const name of ['renderReport', 'renderRadialMap', 'showEvidence', 'renderFindings', 'renderLessons', 'renderReadiness']) {
+  for (const name of ['renderReport', 'renderDecisionBrief', 'renderEvidenceQuality', 'renderScenarios', 'renderAssumptions', 'renderRadialMap', 'showEvidence', 'renderFindings', 'renderLessons', 'renderReadiness', 'renderCommandCenter']) {
     assert.ok(js.includes(name), `missing ${name}`);
   }
 });

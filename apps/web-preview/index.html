@@ -7,6 +7,9 @@
   <meta name="theme-color" content="#071011" />
   <title>Analytica — Workable MVP Prototype</title>
   <link rel="stylesheet" href="./styles.css" />
+  <link rel="stylesheet" href="./owner-demo.css" />
+  <link rel="stylesheet" href="./editorial-theme.css" />
+  <link rel="stylesheet" href="./verification.css" />
 </head>
 <body>
   <a class="skip-link" href="#analysis-summary">Skip to analysis</a>
@@ -46,6 +49,16 @@
         <p class="microcopy"><strong>No real charge in this build.</strong> The $1 checkout contract is implemented in prototype/demo mode so payment UX and API boundaries can be tested safely.</p>
         <p id="form-error" class="form-error" role="alert" hidden></p>
       </form>
+    </section>
+
+    <section class="shell intelligence-layer" aria-label="Decision intelligence summary">
+      <article id="decision-brief" class="intelligence-card decision-brief"></article>
+      <article id="evidence-quality" class="intelligence-card evidence-quality"></article>
+    </section>
+
+    <section class="shell intelligence-layer lower" aria-label="Financial decision support">
+      <article id="scenario-comparison" class="intelligence-card scenario-comparison"></article>
+      <article id="assumption-register" class="intelligence-card assumption-register"></article>
     </section>
 
     <section id="analysis-pipeline" class="shell pipeline-card" aria-live="polite" aria-labelledby="pipeline-title">
@@ -98,6 +111,14 @@
     <section id="lessons" class="shell lessons-section" aria-labelledby="lessons-title">
       <div class="section-heading"><div><p class="eyebrow">Prioritized output</p><h2 id="lessons-title">Top 10 lessons for the business decision</h2></div><p class="section-note">Every lesson carries a confidence class and evidence references. Unsupported recommendations do not belong here.</p></div>
       <ol id="lesson-list" class="lesson-list"></ol>
+    </section>
+
+    <section id="technical-command-center" class="shell command-center" aria-labelledby="command-title">
+      <div class="command-heading"><div><p class="eyebrow">Owner view · R&amp;D command center</p><h2 id="command-title">What is real, what is fixture, and what blocks production.</h2></div><span class="command-version">OWNER DEMO CUT · 2026-09-04</span></div>
+      <div id="system-status-grid" class="system-status-grid"></div>
+      <div id="verification-strip" class="verification-strip" aria-label="Fresh verification results"></div>
+      <div class="architecture-flow" aria-label="System architecture"><span>Predicta</span><b>→</b><span>EvidencePacket</span><b>→</b><span>Firewall</span><b>→</b><span>Quantis</span><b>→</b><span>Analytica</span><b>→</b><span>Human QA</span></div>
+      <div id="real-demo-matrix" class="real-demo-matrix"></div>
     </section>
 
     <section id="technical-readiness" class="shell readiness-panel" aria-labelledby="readiness-title">

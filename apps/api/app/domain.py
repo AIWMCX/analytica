@@ -98,6 +98,51 @@ class CohortSummary(BaseModel):
     note: str
 
 
+class DecisionBrief(BaseModel):
+    decision: str
+    capital_exposed: float = Field(ge=0)
+    deadline: str
+    recommendation: str
+    recommendation_status: Literal["fixture_demonstrator", "human_reviewed"]
+    proceed_if: str
+    wait_if: str
+    avoid_if: str
+
+
+class FinancialScenarioSummary(BaseModel):
+    name: Literal["DOWNSIDE", "BASE", "UPSIDE"]
+    monthly_revenue: float
+    operating_profit: float
+    break_even_utilization: float
+    payback_months: float
+    runway_months: float | None = None
+    reconciliation_passed: bool
+
+
+class SensitivityDriverSummary(BaseModel):
+    driver: str
+    profit_swing: float = Field(ge=0)
+
+
+class AssumptionRegisterItem(BaseModel):
+    metric: str
+    value: str
+    origin: Literal["CUSTOMER_INPUT", "SOURCE_ESTIMATE", "BENCHMARK", "ANALYST_ASSUMPTION", "DERIVED_CALCULATION"]
+    review_status: Literal["ACCEPTED", "PROPOSED", "CALCULATED"]
+    evidence_ids: list[str] = Field(default_factory=list)
+
+
+class SystemStatusItem(BaseModel):
+    capability: str
+    state: Literal["working", "prototype", "fixture", "blocked", "next"]
+    truth: str
+
+
+class RealDemoItem(BaseModel):
+    capability: str
+    state: str
+
+
 class AnalysisReport(BaseModel):
     analysis_id: str
     business_activity: str
@@ -112,6 +157,12 @@ class AnalysisReport(BaseModel):
     evidence: list[EvidenceItem]
     findings: list[Finding]
     lessons: list[Lesson]
+    decision_brief: DecisionBrief
+    financial_scenarios: list[FinancialScenarioSummary]
+    sensitivity: list[SensitivityDriverSummary]
+    assumptions: list[AssumptionRegisterItem]
+    system_status: list[SystemStatusItem]
+    real_demo_matrix: list[RealDemoItem]
 
     @model_validator(mode="after")
     def validate_evidence_links(self):

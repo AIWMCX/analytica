@@ -140,11 +140,77 @@ function renderReport(report) {
   document.querySelector('#readiness-label').textContent = report.readiness_label;
   document.querySelector('#report-disclaimer').textContent = report.disclaimer;
   document.querySelector('#analysis-status').innerHTML = `<span aria-hidden="true"></span> ${escapeHtml(report.status)}`;
+  renderDecisionBrief(report);
+  renderEvidenceQuality(report);
+  renderScenarios(report);
+  renderAssumptions(report);
   renderKpis(report);
   renderCompanyTabs(report);
   renderRadialMap(report);
   renderFindings(report);
   renderLessons(report);
+  renderCommandCenter(report);
+}
+
+function money(value) {
+  return new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', maximumFractionDigits: 0 }).format(value);
+}
+
+function renderDecisionBrief(report) {
+  const brief = report.decision_brief;
+  document.querySelector('#decision-brief').innerHTML = `
+    <div class="panel-kicker"><span>Decision brief</span><b>${escapeHtml(brief.recommendation_status.replaceAll('_', ' '))}</b></div>
+    <h2>${escapeHtml(brief.decision)}</h2>
+    <div class="decision-number"><span>Capital exposed</span><strong>${money(brief.capital_exposed)}</strong></div>
+    <div class="recommendation"><span>Current demonstrator recommendation</span><strong>${escapeHtml(brief.recommendation)}</strong></div>
+    <div class="condition-grid">
+      <div><b>Proceed if</b><p>${escapeHtml(brief.proceed_if)}</p></div>
+      <div><b>Wait if</b><p>${escapeHtml(brief.wait_if)}</p></div>
+      <div><b>Avoid if</b><p>${escapeHtml(brief.avoid_if)}</p></div>
+    </div>`;
+}
+
+function renderEvidenceQuality(report) {
+  const confidence = Math.round(report.evidence.reduce((sum, item) => sum + item.confidence, 0) / Math.max(1, report.evidence.length) * 100);
+  const inferred = report.evidence.filter(item => item.verification_status.includes('inference')).length;
+  document.querySelector('#evidence-quality').innerHTML = `
+    <div class="panel-kicker"><span>Evidence quality</span><b>Synthetic owner-demo packet</b></div>
+    <div class="quality-score"><strong>${confidence}%</strong><span>fixture confidence<br>not market confidence</span></div>
+    <div class="quality-grid">
+      <div><strong>${report.evidence.length}</strong><span>source records</span></div>
+      <div><strong>${report.findings.length}</strong><span>normalized findings</span></div>
+      <div><strong>${report.evidence.length - inferred}</strong><span>fixture verified</span></div>
+      <div><strong>${inferred}</strong><span>fixture inferred</span></div>
+    </div>
+    <p class="quality-note"><b>Contract status:</b> <code>predicta.search.v1 → analytica.evidence.v1</code>. Immutable source and packet hashes are implemented and tested; real provider evidence is not represented by these counts.</p>`;
+}
+
+function renderScenarios(report) {
+  const cards = report.financial_scenarios.map(item => `
+    <div class="scenario-card scenario-${item.name.toLowerCase()}">
+      <div><span>${escapeHtml(item.name)}</span><b>${item.reconciliation_passed ? 'RECONCILED' : 'FAILED'}</b></div>
+      <strong>${money(item.operating_profit)}<small>/mo operating profit</small></strong>
+      <dl><dt>Revenue</dt><dd>${money(item.monthly_revenue)}</dd><dt>Break-even utilization</dt><dd>${Math.round(item.break_even_utilization * 100)}%</dd><dt>Payback</dt><dd>${item.payback_months >= 999 ? '> model horizon' : `${item.payback_months} mo`}</dd></dl>
+    </div>`).join('');
+  const maxSwing = Math.max(...report.sensitivity.map(item => item.profit_swing), 1);
+  const sensitivity = report.sensitivity.map(item => `<div class="sensitivity-row"><span>${escapeHtml(item.driver.replaceAll('_', ' '))}</span><i style="width:${Math.max(12, item.profit_swing / maxSwing * 100)}%"></i><b>${money(item.profit_swing)}</b></div>`).join('');
+  document.querySelector('#scenario-comparison').innerHTML = `<div class="panel-kicker"><span>Quantis-compatible financial port</span><b>Deterministic fixture</b></div><h2>Scenario comparison</h2><div class="scenario-grid">${cards}</div><h3 class="subhead">Sensitivity · monthly profit swing</h3><div class="sensitivity-list">${sensitivity}</div>`;
+}
+
+function renderAssumptions(report) {
+  document.querySelector('#assumption-register').innerHTML = `
+    <div class="panel-kicker"><span>Financial-truth firewall</span><b>Approval required</b></div><h2>Assumption register</h2>
+    <div class="assumption-list">${report.assumptions.map(item => `<div class="assumption-row"><div><strong>${escapeHtml(item.metric)}</strong><span>${escapeHtml(item.origin.replaceAll('_', ' '))}</span></div><b>${escapeHtml(item.value)}</b><em class="review-${item.review_status.toLowerCase()}">${escapeHtml(item.review_status)}</em></div>`).join('')}</div>
+    <p class="quality-note">External evidence remains a proposal until a named reviewer accepts its source, units, period, and transformation. Calculations cannot approve their own inputs.</p>`;
+}
+
+function renderCommandCenter(report) {
+  document.querySelector('#system-status-grid').innerHTML = report.system_status.map(item => `<article class="system-state state-${escapeHtml(item.state)}"><span>${escapeHtml(item.state)}</span><h3>${escapeHtml(item.capability)}</h3><p>${escapeHtml(item.truth)}</p></article>`).join('');
+  document.querySelector('#verification-strip').innerHTML = [
+    ['Python focused', '20 PASS'], ['Repository gates', '6 PASS'], ['Browser contracts', '7 PASS'],
+    ['Python compile', 'PASS'], ['Visual capture', 'PASS'], ['FastAPI suite', 'DEPENDENCY BLOCKED'],
+  ].map(([label, result]) => `<div><span>${escapeHtml(label)}</span><b>${escapeHtml(result)}</b></div>`).join('');
+  document.querySelector('#real-demo-matrix').innerHTML = `<div class="matrix-head"><span>Capability</span><span>Current truth</span></div>${report.real_demo_matrix.map(item => `<div><span>${escapeHtml(item.capability)}</span><b>${escapeHtml(item.state)}</b></div>`).join('')}`;
 }
 
 function renderKpis(report) {

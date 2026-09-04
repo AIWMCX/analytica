@@ -19,3 +19,11 @@ class DomainFixtureTests(unittest.TestCase):
     def test_lessons_are_ordered_and_actionable(self):
         self.assertGreaterEqual(len(self.report.lessons),6); priorities=[l.priority for l in self.report.lessons]; self.assertEqual(priorities,sorted(priorities))
         for l in self.report.lessons: self.assertTrue(l.action.strip()); self.assertGreater(len(l.evidence_ids),0)
+
+    def test_owner_demo_exposes_controlled_decision_intelligence(self):
+        self.assertEqual(self.report.decision_brief.capital_exposed, 350000)
+        self.assertEqual([item.name for item in self.report.financial_scenarios], ["DOWNSIDE", "BASE", "UPSIDE"])
+        self.assertTrue(all(item.reconciliation_passed for item in self.report.financial_scenarios))
+        self.assertGreaterEqual(len(self.report.assumptions), 4)
+        self.assertTrue(any(item.origin == "SOURCE_ESTIMATE" and item.review_status == "PROPOSED" for item in self.report.assumptions))
+        self.assertTrue(any(item.state == "blocked" for item in self.report.system_status))
