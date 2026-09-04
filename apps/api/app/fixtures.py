@@ -130,7 +130,7 @@ def build_demo_report(analysis_id: str = "demo_packaging_ny_v1", business_activi
         system_status=[
             SystemStatusItem(capability="Analytica report UI", state="working", truth="Browser-visible and interactive"),
             SystemStatusItem(capability="Predicta API contract", state="working", truth="predicta.search.v1; local production baseline verified"),
-            SystemStatusItem(capability="EvidencePacket / firewall", state="working", truth="analytica.evidence.v1 with immutable hashes and approval gate"),
+            SystemStatusItem(capability="Durable evidence / firewall", state="working", truth="Normalized SQLite packet store, integrity verification and approval gate"),
             SystemStatusItem(capability="Quantis FinancialPort", state="fixture", truth="Deterministic compatible demonstrator; external Quantis deployment not connected"),
             SystemStatusItem(capability="Real company evidence", state="blocked", truth="Current owner demo remains explicitly synthetic"),
             SystemStatusItem(capability="Human QA workflow", state="next", truth="Contract defined; reviewer console not implemented"),
@@ -140,7 +140,7 @@ def build_demo_report(analysis_id: str = "demo_packaging_ny_v1", business_activi
         real_demo_matrix=[
             RealDemoItem(capability="Interactive UI and radial trajectory", state="REAL PROTOTYPE"),
             RealDemoItem(capability="Predicta versioned contract", state="REAL / LOCAL"),
-            RealDemoItem(capability="EvidencePacket and financial firewall", state="REAL / TESTED"),
+            RealDemoItem(capability="Durable EvidencePacket and financial firewall", state="REAL / TESTED"),
             RealDemoItem(capability="Scenario mathematics", state="REAL / DETERMINISTIC FIXTURE"),
             RealDemoItem(capability="Company and peer evidence", state="SYNTHETIC FIXTURE"),
             RealDemoItem(capability="Human approval", state="NOT IMPLEMENTED"),

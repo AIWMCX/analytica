@@ -22,7 +22,7 @@ test('commercial prototype flow includes email and one-dollar demo checkout', ()
 });
 
 test('contains processing pipeline and technical readiness regions', () => {
-  for (const id of ['analysis-pipeline', 'analysis-summary', 'decision-brief', 'evidence-quality', 'scenario-comparison', 'assumption-register', 'cohort-kpis', 'trajectory-map', 'evidence-panel', 'lessons', 'technical-readiness', 'technical-command-center', 'verification-strip', 'real-demo-matrix']) {
+  for (const id of ['analysis-pipeline', 'analysis-summary', 'decision-brief', 'evidence-quality', 'scenario-comparison', 'assumption-register', 'cohort-kpis', 'trajectory-map', 'evidence-panel', 'lessons', 'technical-readiness', 'technical-command-center', 'entity-provenance-state', 'verification-strip', 'real-demo-matrix']) {
     assert.ok(html.includes(`id="${id}"`), `missing ${id}`);
   }
   assert.ok(js.includes('/readiness'));
