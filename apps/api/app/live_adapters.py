@@ -23,7 +23,7 @@ class PredictaHttpClient:
 
     def search(self, raw_query: str, *, session_id: str, country: str = "US", mode: str = "quick") -> dict[str, Any]:
         payload = {"rawQuery": raw_query, "queryVersion": 0, "language": "en", "country": country, "lens": "financial", "safeSearch": "moderate", "mode": mode, "sessionId": session_id}
-        request = Request(f"{self.base_url}/api/search", data=json.dumps(payload, separators=(",", ":")).encode(), headers={"content-type": "application/json", "accept": "application/json"}, method="POST")
+        request = Request(f"{self.base_url}/api/search", data=json.dumps(payload, separators=(",", ":")).encode(), headers={"content-type": "application/json", "accept": "application/json", "User-Agent": "Analytica/0.2 research-integration (contact: operations@aiwmc.org)"}, method="POST")
         response = self.transport(request)
         if not isinstance(response.get("query"), dict) or not isinstance(response.get("candidates"), list):
             raise ValueError("Predicta response does not satisfy the search envelope")

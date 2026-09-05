@@ -9,11 +9,13 @@ class LiveAdapterTests(unittest.TestCase):
         def handler(request):
             seen["path"] = request.full_url
             seen["body"] = request.data
+            seen["user_agent"] = request.get_header("User-agent")
             return {"query": {"queryId": "q1"}, "candidates": [], "claims": [], "diagnostics": {"providersSucceeded": []}}
         client = PredictaHttpClient("https://predicta.example", transport=handler)
         response = client.search("Northstar Packaging New York", session_id="case_01")
         self.assertTrue(seen["path"].endswith("/api/search"))
         self.assertIn('"lens":"financial"', seen["body"].decode())
+        self.assertIn("Analytica", seen["user_agent"])
         self.assertEqual(response["apiVersion"], "predicta.search.v1")
 
     def test_sec_client_uses_official_companyfacts_endpoint_and_identifies_source(self):
