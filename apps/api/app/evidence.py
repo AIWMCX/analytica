@@ -287,8 +287,20 @@ class FinancialTruthFirewall:
         })
 
     def to_canonical_input(self, proposal: ProposedAssumption) -> CanonicalFinancialInput:
-        if proposal.review_status != ReviewStatus.ACCEPTED or not proposal.reviewer_id:
+        if (proposal.review_status != ReviewStatus.ACCEPTED
+                or not (proposal.reviewer_id or '').strip()
+                or not proposal.reviewed_at
+                or not proposal.transformation.strip()
+                or not proposal.source_claim_ids
+                or len(proposal.source_claim_ids) != len(proposal.source_claim_statuses)
+                or ClaimStatus.UNSUPPORTED in proposal.source_claim_statuses):
             raise PermissionError("financial evidence must be human-approved before canonicalization")
+        try:
+            reviewed_at = datetime.fromisoformat(proposal.reviewed_at.replace('Z', '+00:00'))
+            if reviewed_at.tzinfo is None:
+                raise ValueError('review timestamp requires timezone')
+        except ValueError as error:
+            raise PermissionError('invalid review timestamp') from error
         return CanonicalFinancialInput(
             assumption_id=proposal.assumption_id, metric=proposal.metric, value=proposal.value, unit=proposal.unit,
             period=proposal.period, origin=proposal.origin, transformation=proposal.transformation,

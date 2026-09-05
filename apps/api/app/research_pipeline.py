@@ -19,8 +19,10 @@ class ProviderRecord:
     content_hash: str = ""
 
     def __post_init__(self):
-        if not self.content_hash:
-            object.__setattr__(self, "content_hash", hashlib.sha256(self.text.encode()).hexdigest())
+        calculated = hashlib.sha256(self.text.encode()).hexdigest()
+        if self.content_hash and self.content_hash != calculated:
+            raise ValueError('provider record content hash mismatch')
+        object.__setattr__(self, 'content_hash', calculated)
 
 
 class ResearchProvider(Protocol):
@@ -44,6 +46,9 @@ class ResearchRun:
 
 class ResearchPipeline:
     def __init__(self, providers: list[ResearchProvider]):
+        identifiers = [provider.provider_id for provider in providers]
+        if len(set(identifiers)) != len(identifiers):
+            raise ValueError('duplicate provider identifiers')
         self.providers = providers
 
     def run(self, case_id: str, query: str) -> ResearchRun:
@@ -55,5 +60,6 @@ class ResearchPipeline:
                 states[provider.provider_id] = "SUCCEEDED" if result else "DEGRADED"
             except Exception as error:
                 states[provider.provider_id] = "FAILED"
-                failures.append(f"{provider.provider_id}: {error}")
+                # Exceptions can contain credential-bearing upstream URLs.
+                failures.append(f"{provider.provider_id}: {type(error).__name__}")
         return ResearchRun(ResearchRunManifest(case_id, states, failures), records)
