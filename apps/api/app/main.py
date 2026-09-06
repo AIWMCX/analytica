@@ -8,6 +8,7 @@ from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, Field, field_validator
 
 from .domain import AnalysisJob, AnalysisReport, AnalysisStatus
+from .cost_ledger import CaseCostLedgerRepository, CaseCostReport, CostMeasurement
 from .entities import ResolutionDecision, ResolutionStatus
 from .evidence_repository import SQLiteEvidenceRepository
 from .evidence_graph import EvidenceGraphCase, EvidenceGraphService, RecommendationLineage
@@ -72,14 +73,16 @@ def create_app(db_path: str | Path | None = None, stage_delay: float | None = No
     resolved_db = Path(db_path or os.environ.get("ANALYTICA_DB_PATH", ".data/analytica.db"))
     delay = float(os.environ.get("ANALYTICA_STAGE_DELAY", "0.08")) if stage_delay is None else stage_delay
     repository = SQLiteAnalysisRepository(resolved_db)
-    service = AnalysisService(repository, stage_delay=delay)
+    cost_ledger = CaseCostLedgerRepository(resolved_db)
+    service = AnalysisService(repository, stage_delay=delay, cost_ledger=cost_ledger)
     payments = DemoPaymentProvider()
     app.state.repository = repository
     app.state.analysis_service = service
     app.state.payment_provider = payments
+    app.state.cost_ledger = cost_ledger
     app.state.evidence_repository = SQLiteEvidenceRepository(resolved_db)
     app.state.reviewer_repository = SQLiteReviewerRepository(resolved_db)
-    app.state.reviewer_workflow = ReviewerWorkflow(app.state.reviewer_repository, app.state.evidence_repository)
+    app.state.reviewer_workflow = ReviewerWorkflow(app.state.reviewer_repository, app.state.evidence_repository, cost_ledger=cost_ledger)
     app.state.relationship_repository = SQLiteRelationshipRepository(resolved_db)
     app.state.evidence_graph = EvidenceGraphService()
 
@@ -128,6 +131,20 @@ def create_app(db_path: str | Path | None = None, stage_delay: float | None = No
             "mode": "prototype_demo",
             "real_charge": False,
         }
+
+    @app.get("/internal/cases/{case_id}/cost-ledger", response_model=CaseCostReport)
+    def internal_case_cost_ledger(case_id: str) -> CaseCostReport:
+        if case_id != "demo_packaging_ny_v1" and repository.get_job(case_id) is None:
+            raise HTTPException(status_code=404, detail="analysis not found")
+        cost_ledger.open_case(case_id)
+        return cost_ledger.report(case_id)
+
+    @app.post("/internal/cases/{case_id}/cost-ledger/measurements", response_model=CaseCostReport)
+    def record_internal_case_cost(case_id: str, measurement: CostMeasurement) -> CaseCostReport:
+        if case_id != "demo_packaging_ny_v1" and repository.get_job(case_id) is None:
+            raise HTTPException(status_code=404, detail="analysis not found")
+        cost_ledger.record(case_id, measurement)
+        return cost_ledger.report(case_id)
 
     @app.post("/payments/checkout", response_model=PaymentCheckout, status_code=status.HTTP_201_CREATED)
     def checkout(request: CheckoutRequest) -> PaymentCheckout:

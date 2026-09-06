@@ -1,5 +1,8 @@
 import unittest
+import tempfile
+from pathlib import Path
 
+from apps.api.app.cost_ledger import CaseCostLedgerRepository, CostMetric, MeasurementStatus
 from apps.api.app.research_pipeline import ProviderRecord, ResearchPipeline
 
 
@@ -23,6 +26,19 @@ class ResearchPipelineTests(unittest.TestCase):
         self.assertEqual(run.manifest.providers["fred"], "FAILED")
         self.assertFalse(run.fixture_fallback_used)
         self.assertEqual(len(run.manifest.failures), 1)
+
+    def test_live_research_records_search_attempts_and_provider_failures_in_the_case_ledger(self):
+        with tempfile.TemporaryDirectory() as directory:
+            costs = CaseCostLedgerRepository(Path(directory) / "costs.db")
+            pipeline = ResearchPipeline([SuccessfulProvider(), FailingProvider()], cost_ledger=costs)
+
+            pipeline.run("case_cost_research", "packaging inputs")
+
+            measurements = {item.metric: item for item in costs.report("case_cost_research").measurements}
+            self.assertEqual(measurements[CostMetric.SEARCH_COUNT].quantity, 2)
+            self.assertEqual(measurements[CostMetric.SEARCH_COUNT].status, MeasurementStatus.MEASURED)
+            self.assertEqual(measurements[CostMetric.PROVIDER_FAILURES].quantity, 1)
+            self.assertEqual(measurements[CostMetric.PROVIDER_FAILURES].status, MeasurementStatus.MEASURED)
 
 
 if __name__ == "__main__":

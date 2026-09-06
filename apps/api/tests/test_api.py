@@ -138,6 +138,35 @@ class ApiContractTests(unittest.TestCase):
         self.assertEqual(body['audit_actions'][-1]['action_type'], 'EDIT_RECOMMENDATION')
         self.assertTrue(body['audit_actions'][-1]['occurred_at'].endswith('+00:00'))
 
+    def test_internal_case_cost_ledger_records_runtime_and_keeps_public_pricing_unchanged(self):
+        payment = self.client.post('/payments/checkout', json={'email': 'owner@example.com'}).json()
+        created = self.client.post('/analyses', json={
+            'business_activity': 'Packaging manufacturing', 'geography': 'New York',
+            'email': 'owner@example.com', 'payment_token': payment['payment_token'],
+        }).json()
+        self.app.state.analysis_service.wait_for_all(timeout=2)
+
+        initial = self.client.get(f"/internal/cases/{created['analysis_id']}/cost-ledger")
+        self.assertEqual(initial.status_code, 200)
+        body = initial.json()
+        self.assertEqual(body['case_id'], created['analysis_id'])
+        metrics = {item['metric']: item for item in body['measurements']}
+        self.assertEqual(metrics['SEARCH_COUNT']['quantity'], 0)
+        self.assertEqual(metrics['TOKENS']['quantity'], 0)
+        self.assertEqual(metrics['PROVIDER_FAILURES']['quantity'], 0)
+        self.assertEqual(metrics['COMPUTE_TIME_SECONDS']['status'], 'MEASURED')
+        self.assertEqual(metrics['WORKER_TIME_SECONDS']['status'], 'MEASURED')
+        self.assertEqual([item['target_contribution_margin'] for item in body['break_even_prices']], [0.5, 0.7, 0.8])
+        self.assertNotIn('break_even_prices', self.client.get('/pricing').json())
+
+        updated = self.client.post(f"/internal/cases/{created['analysis_id']}/cost-ledger/measurements", json={
+            'metric': 'HUMAN_QA_MINUTES', 'status': 'MEASURED', 'quantity': 30,
+            'unit': 'minutes', 'unit_cost_usd': 0.60, 'source': 'reviewer time entry',
+        })
+        self.assertEqual(updated.status_code, 200)
+        self.assertEqual(updated.json()['human_review_cost']['known_amount_usd'], 18.00)
+        self.assertEqual(updated.json()['human_review_cost']['status'], 'MEASURED')
+
 
 if __name__ == '__main__':
     unittest.main()

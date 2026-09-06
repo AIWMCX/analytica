@@ -2,8 +2,10 @@ from __future__ import annotations
 
 import threading
 import time
+from pathlib import Path
 from uuid import uuid4
 
+from .cost_ledger import CaseCostLedgerRepository, CostMeasurement, CostMetric, MeasurementStatus
 from .domain import AnalysisStatus
 from .fixtures import build_demo_report
 from .repository import SQLiteAnalysisRepository
@@ -21,9 +23,10 @@ class AnalysisService:
         (AnalysisStatus.RENDERING_RESULT, 96, "Rendering decision report"),
     )
 
-    def __init__(self, repository: SQLiteAnalysisRepository, stage_delay: float = 0.08):
+    def __init__(self, repository: SQLiteAnalysisRepository, stage_delay: float = 0.08, cost_ledger: CaseCostLedgerRepository | None = None):
         self.repository = repository
         self.stage_delay = max(0.0, stage_delay)
+        self.cost_ledger = cost_ledger
         self._workers: set[threading.Thread] = set()
         self._worker_lock = threading.Lock()
 
@@ -60,6 +63,13 @@ class AnalysisService:
             raise PermissionError("valid prototype payment authorization is required")
         analysis_id = f"ana_{uuid4().hex[:12]}"
         self.repository.create_job(analysis_id, business_activity.strip(), "New York", email, payment_token)
+        if self.cost_ledger:
+            self.cost_ledger.open_case(analysis_id)
+            self.cost_ledger.record(analysis_id, CostMeasurement.money(CostMetric.PROVIDER_COST, 0, MeasurementStatus.MEASURED, source="prototype has no provider calls"))
+            self.cost_ledger.record(analysis_id, CostMeasurement.measured_quantity(CostMetric.SEARCH_COUNT, 0, "searches", MeasurementStatus.MEASURED, source="prototype has no searches"))
+            self.cost_ledger.record(analysis_id, CostMeasurement.measured_quantity(CostMetric.TOKENS, 0, "tokens", MeasurementStatus.MEASURED, source="prototype has no model invocation"))
+            self.cost_ledger.record(analysis_id, CostMeasurement.money(CostMetric.MODEL_COST, 0, MeasurementStatus.MEASURED, source="prototype has no model invocation"))
+            self.cost_ledger.record(analysis_id, CostMeasurement.measured_quantity(CostMetric.PROVIDER_FAILURES, 0, "failures", MeasurementStatus.MEASURED, source="prototype has no provider calls"))
         if run_async:
             worker = threading.Thread(target=self._run_worker, args=(analysis_id,), daemon=True, name=f"analytica-{analysis_id}")
             with self._worker_lock:
@@ -70,14 +80,21 @@ class AnalysisService:
         return analysis_id
 
     def _run_worker(self, analysis_id: str) -> None:
+        started = time.perf_counter()
         try:
             self.run_analysis(analysis_id)
         finally:
+            if self.cost_ledger:
+                self.cost_ledger.record(analysis_id, CostMeasurement.measured_quantity(
+                    CostMetric.WORKER_TIME_SECONDS, time.perf_counter() - started, "seconds",
+                    MeasurementStatus.MEASURED, source="in-process analysis worker",
+                ))
             current = threading.current_thread()
             with self._worker_lock:
                 self._workers.discard(current)
 
     def run_analysis(self, analysis_id: str) -> None:
+        started = time.perf_counter()
         job = self.repository.get_job(analysis_id)
         if job is None:
             raise KeyError(analysis_id)
@@ -91,3 +108,14 @@ class AnalysisService:
         except Exception:
             self.repository.update_status(analysis_id, AnalysisStatus.FAILED_RETRYABLE, 0, "Prototype analysis failed")
             raise
+        finally:
+            if self.cost_ledger:
+                self.cost_ledger.record(analysis_id, CostMeasurement.measured_quantity(
+                    CostMetric.COMPUTE_TIME_SECONDS, time.perf_counter() - started, "seconds",
+                    MeasurementStatus.MEASURED, source="analysis service wall clock",
+                ))
+                database_bytes = Path(self.repository.db_path).stat().st_size if Path(self.repository.db_path).exists() else 0
+                self.cost_ledger.record(analysis_id, CostMeasurement.measured_quantity(
+                    CostMetric.STORAGE_BYTES, database_bytes, "bytes", MeasurementStatus.MEASURED,
+                    source="SQLite database file size after analysis",
+                ))

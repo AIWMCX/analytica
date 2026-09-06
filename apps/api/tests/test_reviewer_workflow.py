@@ -3,6 +3,7 @@ import unittest
 from pathlib import Path
 
 from apps.api.app.entities import ResolutionDecision, ResolutionStatus
+from apps.api.app.cost_ledger import CaseCostLedgerRepository, CostMetric, MeasurementStatus
 from apps.api.app.evidence import AssumptionOrigin, FinancialTruthFirewall, PredictaEvidencePort
 from apps.api.app.evidence_repository import SQLiteEvidenceRepository
 from apps.api.app.financial import FinancialModelInput, QuantisFinancialPort
@@ -36,7 +37,9 @@ class ReviewerWorkflowE2ETests(unittest.TestCase):
             db_path = Path(directory) / "review.db"
             evidence = SQLiteEvidenceRepository(db_path)
             evidence.save_packet(packet)
-            workflow = ReviewerWorkflow(SQLiteReviewerRepository(db_path), evidence)
+            costs = CaseCostLedgerRepository(db_path)
+            costs.open_case("case_concierge_001")
+            workflow = ReviewerWorkflow(SQLiteReviewerRepository(db_path), evidence, cost_ledger=costs)
             workflow.open_case(
                 case_id="case_concierge_001", entity=resolved_entity, packet_ids=[packet.packet_id],
                 assumptions=[proposal], financial_results=[result], findings=["finding_asset_timing"],
@@ -64,6 +67,27 @@ class ReviewerWorkflowE2ETests(unittest.TestCase):
                 ReviewActionType.APPROVE_DELIVERY,
             ])
             self.assertTrue(all(action.occurred_at.endswith("+00:00") for action in actions))
+            delivery_duration = next(item for item in costs.report("case_concierge_001").measurements if item.metric == CostMetric.DELIVERY_DURATION_SECONDS)
+            self.assertEqual(delivery_duration.status, MeasurementStatus.MEASURED)
+
+    def test_return_for_revision_increments_the_case_revision_counter(self):
+        with tempfile.TemporaryDirectory() as directory:
+            db_path = Path(directory) / "review.db"
+            evidence = SQLiteEvidenceRepository(db_path)
+            costs = CaseCostLedgerRepository(db_path)
+            costs.open_case("case_concierge_revisions")
+            workflow = ReviewerWorkflow(SQLiteReviewerRepository(db_path), evidence, cost_ledger=costs)
+            workflow.open_case(
+                case_id="case_concierge_revisions",
+                entity=ResolutionDecision(status=ResolutionStatus.UNRESOLVED, entity_id=None, confidence=0, matching_signals=0),
+                packet_ids=[], assumptions=[], financial_results=[], findings=[], recommendation="Hold.",
+            )
+
+            workflow.apply("case_concierge_revisions", ReviewActionType.RETURN_FOR_REVISION, reviewer_id="founder_01", reason="Need a second source.")
+
+            revisions = next(item for item in costs.report("case_concierge_revisions").measurements if item.metric == CostMetric.REVISIONS)
+            self.assertEqual(revisions.quantity, 1)
+            self.assertEqual(revisions.status, MeasurementStatus.MEASURED)
 
     def test_delivery_rejects_missing_entity_approval_and_preserves_audit_record(self):
         packet = PredictaEvidencePort("review-e2e").adapt(

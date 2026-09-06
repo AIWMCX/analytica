@@ -11,6 +11,7 @@ from uuid import uuid4
 
 from pydantic import BaseModel, Field
 
+from .cost_ledger import CaseCostLedgerRepository, CostMeasurement, CostMetric, MeasurementStatus
 from .entities import ResolutionDecision, ResolutionStatus
 from .evidence import ClaimStatus, EvidencePacket, FinancialTruthFirewall, ProposedAssumption, ReviewStatus
 from .evidence_repository import SQLiteEvidenceRepository
@@ -169,9 +170,10 @@ class SQLiteReviewerRepository:
 class ReviewerWorkflow:
     """Enforces delivery gates for a founder-led concierge review queue."""
 
-    def __init__(self, repository: SQLiteReviewerRepository, evidence: SQLiteEvidenceRepository):
+    def __init__(self, repository: SQLiteReviewerRepository, evidence: SQLiteEvidenceRepository, cost_ledger: CaseCostLedgerRepository | None = None):
         self.repository = repository
         self.evidence = evidence
+        self.cost_ledger = cost_ledger
 
     def open_case(
         self,
@@ -247,7 +249,22 @@ class ReviewerWorkflow:
         )
         self.repository.save_case(updated)
         self.repository.append_action(action)
+        self._record_operating_telemetry(updated, action_type, occurred_at)
         return updated
+
+    def _record_operating_telemetry(self, case: ReviewerCase, action_type: ReviewActionType, occurred_at: str) -> None:
+        if self.cost_ledger is None:
+            return
+        self.cost_ledger.open_case(case.case_id)
+        if action_type == ReviewActionType.RETURN_FOR_REVISION:
+            self.cost_ledger.increment_count(case.case_id, CostMetric.REVISIONS, "revisions", source="reviewer return-for-revision action")
+        if action_type == ReviewActionType.APPROVE_DELIVERY:
+            created = datetime.fromisoformat(case.created_at)
+            delivered = datetime.fromisoformat(occurred_at)
+            self.cost_ledger.record(case.case_id, CostMeasurement.measured_quantity(
+                CostMetric.DELIVERY_DURATION_SECONDS, max(0, (delivered - created).total_seconds()), "seconds",
+                MeasurementStatus.MEASURED, source="reviewer delivery approval timestamp",
+            ))
 
     def _apply_transition(
         self,

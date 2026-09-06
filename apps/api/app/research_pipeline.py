@@ -5,6 +5,8 @@ from dataclasses import dataclass, field
 from datetime import datetime, timezone
 from typing import Protocol
 
+from .cost_ledger import CaseCostLedgerRepository, CostMeasurement, CostMetric, MeasurementStatus
+
 
 @dataclass(frozen=True)
 class ProviderRecord:
@@ -45,14 +47,21 @@ class ResearchRun:
 
 
 class ResearchPipeline:
-    def __init__(self, providers: list[ResearchProvider]):
+    def __init__(self, providers: list[ResearchProvider], cost_ledger: CaseCostLedgerRepository | None = None):
         identifiers = [provider.provider_id for provider in providers]
         if len(set(identifiers)) != len(identifiers):
             raise ValueError('duplicate provider identifiers')
         self.providers = providers
+        self.cost_ledger = cost_ledger
 
     def run(self, case_id: str, query: str) -> ResearchRun:
         states, failures, records = {}, [], []
+        if self.cost_ledger:
+            self.cost_ledger.open_case(case_id)
+            self.cost_ledger.record(case_id, CostMeasurement.measured_quantity(
+                CostMetric.SEARCH_COUNT, len(self.providers), "searches", MeasurementStatus.MEASURED,
+                source="research provider collection attempts",
+            ))
         for provider in self.providers:
             try:
                 result = provider.collect(query)
@@ -62,4 +71,9 @@ class ResearchPipeline:
                 states[provider.provider_id] = "FAILED"
                 # Exceptions can contain credential-bearing upstream URLs.
                 failures.append(f"{provider.provider_id}: {type(error).__name__}")
+        if self.cost_ledger:
+            self.cost_ledger.record(case_id, CostMeasurement.measured_quantity(
+                CostMetric.PROVIDER_FAILURES, len(failures), "failures", MeasurementStatus.MEASURED,
+                source="research provider collection outcomes",
+            ))
         return ResearchRun(ResearchRunManifest(case_id, states, failures), records)
