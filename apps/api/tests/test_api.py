@@ -19,6 +19,13 @@ class ApiContractTests(unittest.TestCase):
         self.client.close()
         self.tempdir.cleanup()
 
+    def customer_headers(self, email: str) -> dict[str, str]:
+        customer = self.app.state.payment_access.bootstrap_customer(email, email.split("@", 1)[0])
+        return {"Authorization": f"Bearer {self.app.state.access_tokens.issue_customer(customer.customer_id)}"}
+
+    def reviewer_headers(self) -> dict[str, str]:
+        return {"Authorization": f"Bearer {self.app.state.access_tokens.issue_reviewer('founder_01')}"}
+
     def test_health_and_readiness_are_explicit(self):
         health = self.client.get('/health')
         self.assertEqual(health.status_code, 200)
@@ -65,14 +72,14 @@ class ApiContractTests(unittest.TestCase):
         analysis_id = created['analysis_id']
         deadline = time.time() + 2
         while time.time() < deadline:
-            status_response = self.client.get(f'/analyses/{analysis_id}/status')
+            status_response = self.client.get(f'/analyses/{analysis_id}/status', headers=self.customer_headers('owner@example.com'))
             self.assertEqual(status_response.status_code, 200)
             job = status_response.json()
             if job['status'] == 'COMPLETED':
                 break
             time.sleep(0.01)
         self.assertEqual(job['progress_percent'], 100)
-        report = self.client.get(f'/analyses/{analysis_id}')
+        report = self.client.get(f'/analyses/{analysis_id}', headers=self.customer_headers('owner@example.com'))
         self.assertEqual(report.status_code, 200)
         body = report.json()
         self.assertEqual(body['analysis_id'], analysis_id)
@@ -121,12 +128,12 @@ class ApiContractTests(unittest.TestCase):
         self.assertTrue(body['sources'])
 
     def test_internal_reviewer_case_exposes_delivery_gate_and_audits_recommendation_edits(self):
-        initial = self.client.get('/review/cases/demo_packaging_ny_v1')
+        initial = self.client.get('/review/cases/demo_packaging_ny_v1', headers=self.reviewer_headers())
         self.assertEqual(initial.status_code, 200)
         self.assertFalse(initial.json()['delivery_gate']['eligible'])
         self.assertIn('entity is not resolved', initial.json()['delivery_gate']['blockers'])
 
-        edited = self.client.post('/review/cases/demo_packaging_ny_v1/actions', json={
+        edited = self.client.post('/review/cases/demo_packaging_ny_v1/actions', headers=self.reviewer_headers(), json={
             'action_type': 'EDIT_RECOMMENDATION',
             'reviewer_id': 'founder_01',
             'recommendation_text': 'Keep the first capacity decision reversible.',
@@ -146,7 +153,7 @@ class ApiContractTests(unittest.TestCase):
         }).json()
         self.app.state.analysis_service.wait_for_all(timeout=2)
 
-        initial = self.client.get(f"/internal/cases/{created['analysis_id']}/cost-ledger")
+        initial = self.client.get(f"/internal/cases/{created['analysis_id']}/cost-ledger", headers=self.reviewer_headers())
         self.assertEqual(initial.status_code, 200)
         body = initial.json()
         self.assertEqual(body['case_id'], created['analysis_id'])
@@ -159,7 +166,7 @@ class ApiContractTests(unittest.TestCase):
         self.assertEqual([item['target_contribution_margin'] for item in body['break_even_prices']], [0.5, 0.7, 0.8])
         self.assertNotIn('break_even_prices', self.client.get('/pricing').json())
 
-        updated = self.client.post(f"/internal/cases/{created['analysis_id']}/cost-ledger/measurements", json={
+        updated = self.client.post(f"/internal/cases/{created['analysis_id']}/cost-ledger/measurements", headers=self.reviewer_headers(), json={
             'metric': 'HUMAN_QA_MINUTES', 'status': 'MEASURED', 'quantity': 30,
             'unit': 'minutes', 'unit_cost_usd': 0.60, 'source': 'reviewer time entry',
         })
