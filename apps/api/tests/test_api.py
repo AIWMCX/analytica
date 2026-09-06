@@ -120,6 +120,24 @@ class ApiContractTests(unittest.TestCase):
         self.assertTrue(body['passages'])
         self.assertTrue(body['sources'])
 
+    def test_internal_reviewer_case_exposes_delivery_gate_and_audits_recommendation_edits(self):
+        initial = self.client.get('/review/cases/demo_packaging_ny_v1')
+        self.assertEqual(initial.status_code, 200)
+        self.assertFalse(initial.json()['delivery_gate']['eligible'])
+        self.assertIn('entity is not resolved', initial.json()['delivery_gate']['blockers'])
+
+        edited = self.client.post('/review/cases/demo_packaging_ny_v1/actions', json={
+            'action_type': 'EDIT_RECOMMENDATION',
+            'reviewer_id': 'founder_01',
+            'recommendation_text': 'Keep the first capacity decision reversible.',
+        })
+        self.assertEqual(edited.status_code, 200)
+        body = edited.json()
+        self.assertEqual(body['case']['reviewer_recommendation'], 'Keep the first capacity decision reversible.')
+        self.assertEqual(body['case']['source_recommendation'], 'LEASE / VALIDATE BEFORE BUYING')
+        self.assertEqual(body['audit_actions'][-1]['action_type'], 'EDIT_RECOMMENDATION')
+        self.assertTrue(body['audit_actions'][-1]['occurred_at'].endswith('+00:00'))
+
 
 if __name__ == '__main__':
     unittest.main()

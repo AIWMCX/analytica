@@ -74,3 +74,20 @@ test('decision workspace surfaces only contracted reliability, financial, and li
   assert.ok(!js.includes('DEPENDENCY BLOCKED'));
   assert.ok(js.includes('Entity delivery'));
 });
+
+test('internal reviewer screen exposes the concierge delivery gate and only audit-backed controls', () => {
+  const reviewHtmlPath = new URL('../review.html', import.meta.url);
+  const reviewJsPath = new URL('../review.js', import.meta.url);
+  assert.ok(fs.existsSync(reviewHtmlPath), 'missing internal reviewer screen');
+  assert.ok(fs.existsSync(reviewJsPath), 'missing internal reviewer client');
+  const reviewHtml = fs.readFileSync(reviewHtmlPath, 'utf8');
+  const reviewJs = fs.readFileSync(reviewJsPath, 'utf8');
+  for (const id of ['review-gate', 'review-case', 'review-evidence', 'review-assumptions', 'review-financials', 'review-recommendation', 'review-audit']) {
+    assert.ok(reviewHtml.includes(`id="${id}"`), `missing ${id}`);
+  }
+  assert.match(reviewHtml, /Internal concierge review/i);
+  assert.ok(reviewJs.includes('/review/cases/'));
+  for (const action of ['APPROVE_ENTITY', 'REJECT_ENTITY', 'REQUEST_ADDITIONAL_RESEARCH', 'ACCEPT_ASSUMPTION', 'REJECT_ASSUMPTION', 'EDIT_RECOMMENDATION', 'RETURN_FOR_REVISION', 'APPROVE_DELIVERY', 'REJECT_DELIVERY']) {
+    assert.ok(reviewJs.includes(action), `missing reviewer action ${action}`);
+  }
+});

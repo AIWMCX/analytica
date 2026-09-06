@@ -1,0 +1,54 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta name="robots" content="noindex,nofollow" />
+  <title>Analytica — Internal concierge review</title>
+  <link rel="stylesheet" href="./styles.css" />
+  <link rel="stylesheet" href="./editorial-theme.css" />
+  <link rel="stylesheet" href="./review.css" />
+</head>
+<body class="review-body">
+  <a class="skip-link" href="#review-gate">Skip to delivery gate</a>
+  <header class="topbar review-topbar">
+    <a class="brand" href="./index.html#top" aria-label="Return to Analytica">
+      <span class="brand-mark" aria-hidden="true"><span></span></span><span class="brand-word">ANALYTICA</span>
+    </a>
+    <div class="review-topline"><span>INTERNAL CONCIERGE REVIEW</span><a href="./index.html#decision-workspace">Customer workspace ↗</a></div>
+  </header>
+
+  <main class="review-shell">
+    <section class="review-intro">
+      <div><p class="eyebrow">Founder / analyst console</p><h1>Review the evidence before delivery.</h1><p>One controlled queue for the first 15–50 concierge cases. Every decision below is written to an append-only audit record.</p></div>
+      <form id="review-loader" class="review-load-form" aria-label="Load internal review case">
+        <label for="case-id">Case ID</label><input id="case-id" name="case-id" value="demo_packaging_ny_v1" required />
+        <label for="reviewer-id">Reviewer</label><input id="reviewer-id" name="reviewer-id" value="founder_01" required />
+        <button type="submit">Load case</button>
+      </form>
+    </section>
+
+    <p id="review-message" class="review-message" role="status" aria-live="polite"></p>
+
+    <section id="review-gate" class="review-gate" aria-labelledby="review-gate-title"></section>
+    <section class="review-grid primary-grid" aria-label="Case, entity, provider, and evidence inspection">
+      <article id="review-case" class="review-panel"></article>
+      <article id="review-evidence" class="review-panel"></article>
+    </section>
+    <section class="review-grid" aria-label="Assumption and financial review">
+      <article id="review-assumptions" class="review-panel"></article>
+      <article id="review-financials" class="review-panel"></article>
+    </section>
+    <section class="review-grid" aria-label="Findings and recommendation review">
+      <article id="review-findings" class="review-panel"></article>
+      <article id="review-recommendation" class="review-panel"></article>
+    </section>
+    <section class="review-grid" aria-label="Delivery controls and audit history">
+      <article id="review-delivery" class="review-panel"></article>
+      <article id="review-audit" class="review-panel"></article>
+    </section>
+    <aside class="review-boundary"><strong>Internal access boundary.</strong> This screen is a local concierge workflow. Authentication, tenant authorization, and signed report delivery must protect it before production use.</aside>
+  </main>
+  <script src="./review.js" defer></script>
+</body>
+</html>
