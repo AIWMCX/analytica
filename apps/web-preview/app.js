@@ -3,7 +3,7 @@ const DEMO_ENDPOINT = '/analyses/demo_packaging_ny_v1';
 const CREATE_ENDPOINT = '/analyses';
 const CHECKOUT_ENDPOINT = '/payments/checkout';
 const READINESS_ENDPOINT = '/readiness';
-const state = { report: null, activeCompanyId: null, analysisId: null };
+const state = { report: null, activeCompanyId: null, analysisId: null, recommendationLineage: null };
 const colors = { green: '#64e0a3', blue: '#6ca7ff', yellow: '#f1c85e', red: '#ff756f' };
 const lineColors = ['#8df0c6', '#7caaff', '#f0c45d', '#ff837a', '#c79aff'];
 const PIPELINE = [
@@ -134,6 +134,7 @@ async function runPrototypeAnalysis() {
 
 function renderReport(report) {
   state.report = report;
+  state.recommendationLineage = null;
   state.activeCompanyId = report.companies.some(c => c.company_id === state.activeCompanyId) ? state.activeCompanyId : report.companies[0]?.company_id;
   document.querySelector('#summary-title').textContent = `${report.business_activity} — ${report.geography}`;
   document.querySelector('#market-scope').textContent = report.market_scope;
@@ -150,6 +151,7 @@ function renderReport(report) {
   renderFindings(report);
   renderLessons(report);
   renderCommandCenter(report);
+  preloadRecommendationLineage(report);
 }
 
 function money(value) {
@@ -167,7 +169,65 @@ function renderDecisionBrief(report) {
       <div><b>Proceed if</b><p>${escapeHtml(brief.proceed_if)}</p></div>
       <div><b>Wait if</b><p>${escapeHtml(brief.wait_if)}</p></div>
       <div><b>Avoid if</b><p>${escapeHtml(brief.avoid_if)}</p></div>
-    </div>`;
+    </div>
+    <div class="lineage-control">
+      <button id="why-recommendation" type="button" aria-expanded="false" aria-controls="decision-lineage">Why are you telling me this?</button>
+      <p>Inspect the decision chain before acting on this demonstrator recommendation.</p>
+    </div>
+    <div id="decision-lineage" class="decision-lineage" aria-live="polite" hidden></div>`;
+  document.querySelector('#why-recommendation').addEventListener('click', async event => {
+    const button = event.currentTarget;
+    const lineageHost = document.querySelector('#decision-lineage');
+    if (!lineageHost.hidden) {
+      lineageHost.hidden = true;
+      button.textContent = 'Why are you telling me this?';
+      button.setAttribute('aria-expanded', 'false');
+      return;
+    }
+    if (!state.recommendationLineage) {
+      button.disabled = true;
+      button.textContent = 'Verifying decision lineage…';
+      state.recommendationLineage = await loadRecommendationLineage(report);
+      button.disabled = false;
+    }
+    button.textContent = 'Hide decision lineage';
+    button.setAttribute('aria-expanded', 'true');
+    renderDecisionLineage();
+  });
+}
+
+async function loadRecommendationLineage(report) {
+  const recommendationId = report.decision_brief?.recommendation_id;
+  if (!recommendationId) return null;
+  try {
+    return await fetchJson(`/analyses/${encodeURIComponent(report.analysis_id)}/evidence-graph/recommendations/${encodeURIComponent(recommendationId)}/lineage`);
+  } catch (_) {
+    return window.__ANALYTICA_DEMO_LINEAGE__ || null;
+  }
+}
+
+async function preloadRecommendationLineage(report) {
+  const lineage = await loadRecommendationLineage(report);
+  if (state.report?.analysis_id === report.analysis_id) state.recommendationLineage = lineage;
+}
+
+function renderDecisionLineage() {
+  const host = document.querySelector('#decision-lineage');
+  const lineage = state.recommendationLineage;
+  if (!lineage) {
+    host.hidden = false;
+    host.innerHTML = '<p class="lineage-empty">The decision chain is unavailable in this preview. This recommendation is not report-ready.</p>';
+    return;
+  }
+  const list = (items, empty) => items.length
+    ? `<ul>${items.map(item => `<li>${escapeHtml(item.label)}</li>`).join('')}</ul>`
+    : `<p>${escapeHtml(empty)}</p>`;
+  host.hidden = false;
+  host.innerHTML = `
+    <div class="lineage-status ${lineage.report_ready ? 'ready' : 'blocked'}"><span>${lineage.report_ready ? 'Lineage complete' : 'Lineage incomplete'}</span><b>${lineage.report_ready ? 'Traceable through source records' : 'Not report-ready'}</b></div>
+    <div class="lineage-summary"><div><span>Finding</span>${list(lineage.findings, 'No finding linked.')}</div><div><span>Calculation</span>${list(lineage.calculations, 'No calculation linked.')}</div><div><span>Accepted assumptions</span>${list(lineage.assumptions.filter(item => item.material), 'No accepted assumptions linked.')}</div><div><span>Source records</span>${list(lineage.sources, 'No source records linked.')}</div></div>
+    <p class="lineage-note">This is an evidence path, not proof of future performance. Current data mode: ${escapeHtml(state.report.data_mode.replaceAll('_', ' '))}.</p>
+    ${lineage.issues.length ? `<ul class="lineage-issues">${lineage.issues.map(issue => `<li>${escapeHtml(issue.message)}</li>`).join('')}</ul>` : ''}`;
 }
 
 function renderEvidenceQuality(report) {

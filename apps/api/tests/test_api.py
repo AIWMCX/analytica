@@ -104,6 +104,22 @@ class ApiContractTests(unittest.TestCase):
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.json()['analysis_id'], 'demo_packaging_ny_v1')
 
+    def test_recommendation_lineage_api_returns_a_report_ready_decision_path(self):
+        response = self.client.get(
+            '/analyses/demo_packaging_ny_v1/evidence-graph/'
+            'recommendations/rec_lease_validate_before_buying/lineage'
+        )
+        self.assertEqual(response.status_code, 200)
+        body = response.json()
+        self.assertTrue(body['report_ready'])
+        self.assertEqual(body['recommendation']['node_type'], 'RECOMMENDATION')
+        self.assertTrue(body['findings'])
+        self.assertTrue(body['calculations'])
+        self.assertTrue(body['assumptions'])
+        self.assertTrue(body['claims'])
+        self.assertTrue(body['passages'])
+        self.assertTrue(body['sources'])
+
 
 if __name__ == '__main__':
     unittest.main()

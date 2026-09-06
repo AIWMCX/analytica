@@ -101,6 +101,7 @@ def build_demo_report(analysis_id: str = "demo_packaging_ny_v1", business_activi
         findings=findings,
         lessons=lessons,
         decision_brief=DecisionBrief(
+            recommendation_id="rec_lease_validate_before_buying",
             decision="Add a second packaging production line",
             capital_exposed=350000,
             deadline="Owner demonstration — not a live recommendation",

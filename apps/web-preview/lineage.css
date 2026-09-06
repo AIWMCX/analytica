@@ -1,0 +1,71 @@
+.lineage-control {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  margin-top: 18px;
+  padding-top: 16px;
+  border-top: 1px solid var(--line);
+}
+
+.lineage-control button {
+  flex: 0 0 auto;
+  border: 1px solid #5e9883;
+  border-radius: 4px;
+  background: rgba(19, 60, 50, .48);
+  color: var(--mint);
+  cursor: pointer;
+  font: 700 12px/1 var(--mono);
+  letter-spacing: .03em;
+  padding: 10px 12px;
+}
+
+.lineage-control button:hover,
+.lineage-control button:focus-visible {
+  background: #194d40;
+  outline: 2px solid var(--mint);
+  outline-offset: 2px;
+}
+
+.lineage-control button:disabled { cursor: wait; opacity: .66; }
+.lineage-control p { margin: 0; color: var(--muted); font-size: 12px; line-height: 1.45; }
+
+.decision-lineage {
+  margin-top: 16px;
+  border: 1px solid var(--line);
+  background: rgba(8, 25, 23, .72);
+  padding: 16px;
+}
+
+.lineage-status {
+  align-items: center;
+  display: flex;
+  gap: 8px;
+  justify-content: space-between;
+  margin-bottom: 14px;
+}
+
+.lineage-status span {
+  border-radius: 999px;
+  font: 700 10px/1 var(--mono);
+  letter-spacing: .08em;
+  padding: 6px 8px;
+  text-transform: uppercase;
+}
+
+.lineage-status.ready span { background: rgba(100, 224, 163, .14); color: var(--mint); }
+.lineage-status.blocked span { background: rgba(255, 117, 111, .14); color: var(--red); }
+.lineage-status b { color: var(--text); font-size: 13px; }
+
+.lineage-summary { display: grid; gap: 10px; grid-template-columns: repeat(2, minmax(0, 1fr)); }
+.lineage-summary > div { background: rgba(255, 255, 255, .025); border: 1px solid rgba(255, 255, 255, .08); min-height: 74px; padding: 10px; }
+.lineage-summary span { color: var(--muted); display: block; font: 700 10px/1.25 var(--mono); letter-spacing: .08em; margin-bottom: 7px; text-transform: uppercase; }
+.lineage-summary ul, .lineage-issues { margin: 0; padding-left: 16px; }
+.lineage-summary li, .lineage-summary p, .lineage-issues li { color: var(--text); font-size: 12px; line-height: 1.45; margin: 0 0 3px; }
+.lineage-note, .lineage-empty { color: var(--muted); font-size: 12px; line-height: 1.5; margin: 14px 0 0; }
+.lineage-issues { border-top: 1px solid var(--line); color: var(--red); margin-top: 12px; padding-top: 12px; }
+
+@media (max-width: 640px) {
+  .lineage-control { align-items: flex-start; flex-direction: column; }
+  .lineage-summary { grid-template-columns: 1fr; }
+  .lineage-status { align-items: flex-start; flex-direction: column; }
+}

@@ -8,7 +8,9 @@ from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, Field, field_validator
 
 from .domain import AnalysisJob, AnalysisReport, AnalysisStatus
+from .evidence_graph import EvidenceGraphCase, EvidenceGraphService, RecommendationLineage
 from .fixtures import build_demo_report
+from .intelligence import SQLiteRelationshipRepository
 from .payments import DemoPaymentProvider, PaymentCheckout
 from .readiness import build_readiness
 from .repository import SQLiteAnalysisRepository
@@ -64,6 +66,19 @@ def create_app(db_path: str | Path | None = None, stage_delay: float | None = No
     app.state.repository = repository
     app.state.analysis_service = service
     app.state.payment_provider = payments
+    app.state.relationship_repository = SQLiteRelationshipRepository(resolved_db)
+    app.state.evidence_graph = EvidenceGraphService()
+
+    def report_for(analysis_id: str) -> AnalysisReport:
+        if analysis_id == "demo_packaging_ny_v1":
+            return build_demo_report()
+        job = repository.get_job(analysis_id)
+        if job is None:
+            raise HTTPException(status_code=404, detail="analysis not found")
+        report = repository.get_report(analysis_id)
+        if report is None:
+            raise HTTPException(status_code=409, detail={"status": job.status.value, "stage": job.stage_label, "progress_percent": job.progress_percent})
+        return report
 
     @app.get("/health")
     def health() -> dict[str, str]:
@@ -131,15 +146,22 @@ def create_app(db_path: str | Path | None = None, stage_delay: float | None = No
 
     @app.get("/analyses/{analysis_id}", response_model=AnalysisReport)
     def get_analysis(analysis_id: str) -> AnalysisReport:
-        if analysis_id == "demo_packaging_ny_v1":
-            return build_demo_report()
-        job = repository.get_job(analysis_id)
-        if job is None:
-            raise HTTPException(status_code=404, detail="analysis not found")
-        report = repository.get_report(analysis_id)
-        if report is None:
-            raise HTTPException(status_code=409, detail={"status": job.status.value, "stage": job.stage_label, "progress_percent": job.progress_percent})
-        return report
+        return report_for(analysis_id)
+
+    @app.get("/analyses/{analysis_id}/evidence-graph", response_model=EvidenceGraphCase)
+    def get_evidence_graph(analysis_id: str) -> EvidenceGraphCase:
+        case = app.state.evidence_graph.build_case(report_for(analysis_id))
+        app.state.evidence_graph.persist_case(case, app.state.relationship_repository)
+        return case
+
+    @app.get("/analyses/{analysis_id}/evidence-graph/recommendations/{recommendation_id}/lineage", response_model=RecommendationLineage)
+    def get_recommendation_lineage(analysis_id: str, recommendation_id: str) -> RecommendationLineage:
+        case = app.state.evidence_graph.build_case(report_for(analysis_id))
+        app.state.evidence_graph.persist_case(case, app.state.relationship_repository)
+        try:
+            return app.state.evidence_graph.explain_recommendation(case, recommendation_id)
+        except KeyError as exc:
+            raise HTTPException(status_code=404, detail="recommendation not found") from exc
 
     web_dir = Path(__file__).resolve().parents[3] / "apps" / "web-preview"
     if web_dir.exists():

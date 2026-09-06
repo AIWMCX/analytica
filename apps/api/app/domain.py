@@ -99,6 +99,7 @@ class CohortSummary(BaseModel):
 
 
 class DecisionBrief(BaseModel):
+    recommendation_id: str
     decision: str
     capital_exposed: float = Field(ge=0)
     deadline: str

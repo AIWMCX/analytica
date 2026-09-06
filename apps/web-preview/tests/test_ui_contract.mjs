@@ -52,3 +52,11 @@ test('client renders report, radial trajectories, findings, lessons, and readine
     assert.ok(js.includes(name), `missing ${name}`);
   }
 });
+
+test('decision brief has an explainable recommendation interaction rather than a decorative graph', () => {
+  assert.ok(js.includes('id="why-recommendation"'));
+  assert.ok(js.includes('id="decision-lineage"'));
+  assert.ok(js.includes('renderDecisionLineage'));
+  assert.ok(js.includes('/evidence-graph/recommendations/'));
+  assert.match(js, /Why are you telling me this\?/);
+});
