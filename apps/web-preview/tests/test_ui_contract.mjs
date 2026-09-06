@@ -71,4 +71,6 @@ test('decision workspace surfaces only contracted reliability, financial, and li
   assert.ok(js.includes('low_operating_profit'));
   assert.ok(js.includes('high_operating_profit'));
   assert.ok(!js.includes('fixture confidence'));
+  assert.ok(!js.includes('DEPENDENCY BLOCKED'));
+  assert.ok(js.includes('Entity delivery'));
 });

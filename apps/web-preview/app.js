@@ -326,8 +326,12 @@ function renderMethodLimitations(report) {
 function renderCommandCenter(report) {
   document.querySelector('#system-status-grid').innerHTML = report.system_status.map(item => `<article class="system-state state-${escapeHtml(item.state)}"><span>${escapeHtml(item.state)}</span><h3>${escapeHtml(item.capability)}</h3><p>${escapeHtml(item.truth)}</p></article>`).join('');
   document.querySelector('#verification-strip').innerHTML = [
-    ['Python focused', '20 PASS'], ['Repository gates', '6 PASS'], ['Browser contracts', '7 PASS'],
-    ['Python compile', 'PASS'], ['Visual capture', 'PASS'], ['FastAPI suite', 'DEPENDENCY BLOCKED'],
+    ['Analysis status', report.status],
+    ['Evidence mode', report.data_mode.replaceAll('_', ' ')],
+    ['Entity delivery', report.entity_identity.eligible_for_customer_delivery ? 'ELIGIBLE' : 'NOT ELIGIBLE'],
+    ['Scenario cases', `${report.financial_scenarios.length} MODELED`],
+    ['Contradictions', `${report.contradictions.length} DECLARED`],
+    ['Provider evidence', 'NOT REPRESENTED'],
   ].map(([label, result]) => `<div><span>${escapeHtml(label)}</span><b>${escapeHtml(result)}</b></div>`).join('');
   document.querySelector('#real-demo-matrix').innerHTML = `<div class="matrix-head"><span>Capability</span><span>Current truth</span></div>${report.real_demo_matrix.map(item => `<div><span>${escapeHtml(item.capability)}</span><b>${escapeHtml(item.state)}</b></div>`).join('')}`;
 }
