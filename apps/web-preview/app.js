@@ -143,6 +143,7 @@ function renderReport(report) {
   document.querySelector('#analysis-status').innerHTML = `<span aria-hidden="true"></span> ${escapeHtml(report.status)}`;
   renderDecisionBrief(report);
   renderEvidenceQuality(report);
+  renderEntityIdentity(report);
   renderScenarios(report);
   renderAssumptions(report);
   renderKpis(report);
@@ -150,6 +151,10 @@ function renderReport(report) {
   renderRadialMap(report);
   renderFindings(report);
   renderLessons(report);
+  renderTurningPoints(report);
+  renderContradictions(report);
+  renderRecommendationLedger(report);
+  renderMethodLimitations(report);
   renderCommandCenter(report);
   preloadRecommendationLineage(report);
 }
@@ -165,7 +170,8 @@ function renderDecisionBrief(report) {
     <h2>${escapeHtml(brief.decision)}</h2>
     <div class="decision-number"><span>Capital exposed</span><strong>${money(brief.capital_exposed)}</strong></div>
     <div class="recommendation"><span>Current demonstrator recommendation</span><strong>${escapeHtml(brief.recommendation)}</strong></div>
-    <div class="condition-grid">
+    <p class="decision-context"><b>Decision context:</b> ${escapeHtml(brief.deadline)}</p>
+    <div id="decision-thresholds" class="condition-grid" aria-label="Decision thresholds">
       <div><b>Proceed if</b><p>${escapeHtml(brief.proceed_if)}</p></div>
       <div><b>Wait if</b><p>${escapeHtml(brief.wait_if)}</p></div>
       <div><b>Avoid if</b><p>${escapeHtml(brief.avoid_if)}</p></div>
@@ -231,18 +237,29 @@ function renderDecisionLineage() {
 }
 
 function renderEvidenceQuality(report) {
-  const confidence = Math.round(report.evidence.reduce((sum, item) => sum + item.confidence, 0) / Math.max(1, report.evidence.length) * 100);
   const inferred = report.evidence.filter(item => item.verification_status.includes('inference')).length;
+  const verified = report.evidence.length - inferred;
+  const tracedFindings = report.findings.filter(item => item.evidence_ids.length > 0).length;
   document.querySelector('#evidence-quality').innerHTML = `
-    <div class="panel-kicker"><span>Evidence quality</span><b>Synthetic owner-demo packet</b></div>
-    <div class="quality-score"><strong>${confidence}%</strong><span>fixture confidence<br>not market confidence</span></div>
+    <div class="panel-kicker"><span>Evidence coverage</span><b>${escapeHtml(report.data_mode.replaceAll('_', ' '))}</b></div>
+    <div class="coverage-head"><strong>${verified} / ${report.evidence.length}</strong><span>source records marked<br>fixture verified</span></div>
     <div class="quality-grid">
       <div><strong>${report.evidence.length}</strong><span>source records</span></div>
-      <div><strong>${report.findings.length}</strong><span>normalized findings</span></div>
-      <div><strong>${report.evidence.length - inferred}</strong><span>fixture verified</span></div>
+      <div><strong>${tracedFindings}</strong><span>findings with sources</span></div>
+      <div><strong>${verified}</strong><span>fixture verified</span></div>
       <div><strong>${inferred}</strong><span>fixture inferred</span></div>
     </div>
-    <p class="quality-note"><b>Contract status:</b> <code>predicta.search.v1 → analytica.evidence.v1</code>. Immutable source and packet hashes are implemented and tested; real provider evidence is not represented by these counts.</p>`;
+    <p class="quality-note"><b>Reliability boundary:</b> these are record counts and verification labels, not a probability of success or a market-confidence score. Real-provider evidence is not represented by this fixture.</p>`;
+}
+
+function renderEntityIdentity(report) {
+  const identity = report.entity_identity;
+  document.querySelector('#entity-identity').innerHTML = `
+    <div class="panel-kicker"><span>Entity identity</span><b>${escapeHtml(identity.resolution_status.replaceAll('_', ' '))}</b></div>
+    <h2>${escapeHtml(identity.submitted_name)}</h2>
+    <p class="identity-place">${escapeHtml(identity.geography)}</p>
+    <div class="identity-delivery ${identity.eligible_for_customer_delivery ? 'eligible' : 'ineligible'}"><span>Delivery eligibility</span><strong>${identity.eligible_for_customer_delivery ? 'Eligible' : 'Not eligible'}</strong></div>
+    <p class="quality-note">${escapeHtml(identity.detail)}</p>`;
 }
 
 function renderScenarios(report) {
@@ -252,9 +269,14 @@ function renderScenarios(report) {
       <strong>${money(item.operating_profit)}<small>/mo operating profit</small></strong>
       <dl><dt>Revenue</dt><dd>${money(item.monthly_revenue)}</dd><dt>Break-even utilization</dt><dd>${Math.round(item.break_even_utilization * 100)}%</dd><dt>Payback</dt><dd>${item.payback_months >= 999 ? '> model horizon' : `${item.payback_months} mo`}</dd></dl>
     </div>`).join('');
-  const maxSwing = Math.max(...report.sensitivity.map(item => item.profit_swing), 1);
-  const sensitivity = report.sensitivity.map(item => `<div class="sensitivity-row"><span>${escapeHtml(item.driver.replaceAll('_', ' '))}</span><i style="width:${Math.max(12, item.profit_swing / maxSwing * 100)}%"></i><b>${money(item.profit_swing)}</b></div>`).join('');
-  document.querySelector('#scenario-comparison').innerHTML = `<div class="panel-kicker"><span>Quantis-compatible financial port</span><b>Deterministic fixture</b></div><h2>Scenario comparison</h2><div class="scenario-grid">${cards}</div><h3 class="subhead">Sensitivity · monthly profit swing</h3><div class="sensitivity-list">${sensitivity}</div>`;
+  const baseline = report.financial_scenarios.find(item => item.name === 'BASE')?.operating_profit ?? 0;
+  const maxImpact = Math.max(...report.sensitivity.flatMap(item => [Math.abs(item.low_operating_profit - baseline), Math.abs(item.high_operating_profit - baseline)]), 1);
+  const sensitivity = report.sensitivity.map(item => {
+    const lowImpact = Math.abs(item.low_operating_profit - baseline);
+    const highImpact = Math.abs(item.high_operating_profit - baseline);
+    return `<div class="tornado-row"><div><strong>${escapeHtml(item.driver.replaceAll('_', ' '))}</strong><span>modeled operating profit</span></div><div class="tornado-track" aria-label="${escapeHtml(item.driver)} downside ${money(item.low_operating_profit)}, upside ${money(item.high_operating_profit)}"><i class="tornado-down" style="width:${Math.max(8, lowImpact / maxImpact * 50)}%"></i><b></b><i class="tornado-up" style="width:${Math.max(8, highImpact / maxImpact * 50)}%"></i></div><div class="tornado-values"><span>${money(item.low_operating_profit)}</span><strong>${money(item.high_operating_profit)}</strong></div></div>`;
+  }).join('');
+  document.querySelector('#scenario-comparison').innerHTML = `<div class="panel-kicker"><span>Quantis-compatible financial port</span><b>Deterministic fixture</b></div><h2>Scenario comparison</h2><div class="scenario-grid">${cards}</div><h3 class="subhead">Sensitivity tornado · monthly operating profit</h3><p class="tornado-note">Downside ← lower modeled outcome · higher modeled outcome → upside. Base case: ${money(baseline)} / month.</p><div class="sensitivity-list">${sensitivity}</div>`;
 }
 
 function renderAssumptions(report) {
@@ -262,6 +284,43 @@ function renderAssumptions(report) {
     <div class="panel-kicker"><span>Financial-truth firewall</span><b>Approval required</b></div><h2>Assumption register</h2>
     <div class="assumption-list">${report.assumptions.map(item => `<div class="assumption-row"><div><strong>${escapeHtml(item.metric)}</strong><span>${escapeHtml(item.origin.replaceAll('_', ' '))}</span></div><b>${escapeHtml(item.value)}</b><em class="review-${item.review_status.toLowerCase()}">${escapeHtml(item.review_status)}</em></div>`).join('')}</div>
     <p class="quality-note">External evidence remains a proposal until a named reviewer accepts its source, units, period, and transformation. Calculations cannot approve their own inputs.</p>`;
+}
+
+function renderTurningPoints(report) {
+  const companies = new Map(report.companies.map(item => [item.company_id, item]));
+  const records = [...report.evidence]
+    .sort((left, right) => right.period - left.period)
+    .map(item => {
+      const company = companies.get(item.company_id);
+      return `<button type="button" class="turning-point" data-company-id="${escapeHtml(item.company_id)}" data-period="${item.period}"><time>${item.period}</time><span><b>${escapeHtml(company?.display_name.replace(' (synthetic)', '') || item.company_id)}</b><strong>${escapeHtml(item.normalized_fact)}</strong><small>${escapeHtml(item.verification_status.replaceAll('_', ' '))} · ${escapeHtml(item.source_title)}</small></span></button>`;
+    }).join('');
+  document.querySelector('#turning-points').innerHTML = `<div class="workspace-head"><div><p class="eyebrow">Historical trajectory</p><h2>Turning points, not just scores</h2></div><p>Each event below maps to the selected peer timeline and opens its source drawer.</p></div><div class="turning-list">${records}</div>`;
+  document.querySelectorAll('.turning-point').forEach(button => button.addEventListener('click', () => {
+    const company = companies.get(button.dataset.companyId);
+    const point = company?.trajectory.find(item => String(item.year) === button.dataset.period);
+    if (!company || !point) return;
+    state.activeCompanyId = company.company_id;
+    renderCompanyTabs(report);
+    renderRadialMap(report);
+    showEvidence(company, point);
+    document.querySelector('#evidence-panel').scrollIntoView({ behavior: 'smooth', block: 'center' });
+  }));
+}
+
+function renderContradictions(report) {
+  const content = report.contradictions.length
+    ? `<div class="contradiction-list">${report.contradictions.map(item => `<article><div><span>${escapeHtml(item.status)}</span><b>${escapeHtml(item.subject)}</b></div><p>${escapeHtml(item.summary)}</p><small>${item.evidence_ids.length} linked evidence record${item.evidence_ids.length === 1 ? '' : 's'}</small></article>`).join('')}</div>`
+    : `<div class="empty-contradiction"><strong>No contradiction records declared</strong><p>${escapeHtml(report.contradictions_note)}</p></div>`;
+  document.querySelector('#contradictions').innerHTML = `<div class="workspace-head"><div><p class="eyebrow">Contradictions</p><h2>What could challenge this view</h2></div><p>Conflicting claims are not netted away; they must remain visible to the reviewer.</p></div>${content}`;
+}
+
+function renderRecommendationLedger(report) {
+  const items = report.lessons.slice(0, 3).map(item => `<li><span>${String(item.priority).padStart(2, '0')}</span><div><b>${escapeHtml(item.title)}</b><p>${escapeHtml(item.action)}</p></div><small>${escapeHtml(confidenceLabel(item.confidence))} · ${item.evidence_ids.length} evidence ref${item.evidence_ids.length === 1 ? '' : 's'}</small></li>`).join('');
+  document.querySelector('#recommendation-ledger').innerHTML = `<div class="workspace-head"><div><p class="eyebrow">Recommendation ledger</p><h2>What to do next</h2></div><p>Ordered actions from the current report contract—not a task list generated without evidence.</p></div><ol class="recommendation-list">${items}</ol>`;
+}
+
+function renderMethodLimitations(report) {
+  document.querySelector('#method-limitations').innerHTML = `<div class="workspace-head"><div><p class="eyebrow">Method / limitations</p><h2>What this workspace does not claim</h2></div><p>Use these boundaries before committing capital.</p></div><ul class="limitations-list"><li><b>Data mode</b><span>${escapeHtml(report.data_mode.replaceAll('_', ' '))}; ${escapeHtml(report.disclaimer)}</span></li><li><b>Peer cohort</b><span>${escapeHtml(report.cohort.note)}</span></li><li><b>Financial output</b><span>Deterministic scenario mathematics only. It is not a forecast, valuation, or probability of success.</span></li><li><b>Entity state</b><span>${escapeHtml(report.entity_identity.detail)}</span></li></ul>`;
 }
 
 function renderCommandCenter(report) {
@@ -363,13 +422,13 @@ function showEvidence(company, point) {
   document.querySelector('#evidence-intro').textContent = `${statusLabel(company.status)} · ${Math.round(company.comparability_score * 100)}% comparability · ${point.state.toUpperCase()} state`;
   const evidenceHtml = evidence.length ? evidence.map(item => `
     <article class="evidence-item">
-      <div class="evidence-source-row"><span>Source trace</span><strong>${Math.round(item.confidence * 100)}% confidence</strong></div>
+      <div class="evidence-source-row"><span>Source trace</span><strong>${escapeHtml(item.verification_status.replaceAll('_', ' '))}</strong></div>
       <h4>${escapeHtml(item.source_title)}</h4>
       <div class="evidence-meta"><span>${escapeHtml(item.publisher)}</span><span>${escapeHtml(item.period)}</span><span>${escapeHtml(item.verification_status || 'fixture_verified')}</span></div>
       <p>${escapeHtml(item.fact)}</p>
       <div class="normalized-fact"><span>Normalized signal</span>${escapeHtml(item.normalized_fact || item.fact)}</div>
     </article>`).join('') : `<article class="evidence-item empty-evidence"><h4>No event evidence attached to this fixture year</h4><p>The trajectory value is present for visual continuity. Analytica intentionally does not invent a causal event when no evidence record is attached.</p></article>`;
-  document.querySelector('#evidence-body').innerHTML = `<div class="evidence-score"><div class="metric-tile"><strong>${Math.round(point.performance_score)}</strong><span>Performance / 100</span></div><div class="metric-tile"><strong>${Math.round(point.risk_score * 100)}%</strong><span>Modeled risk</span></div></div>${evidenceHtml}`;
+  document.querySelector('#evidence-body').innerHTML = `<div class="evidence-score"><div class="metric-tile"><strong>${Math.round(point.performance_score)}</strong><span>Modeled performance index</span></div><div class="metric-tile"><strong>${escapeHtml(point.state)}</strong><span>Historical state</span></div></div>${evidenceHtml}`;
 }
 
 function renderFindings(report) {

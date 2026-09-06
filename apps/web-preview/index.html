@@ -11,6 +11,7 @@
   <link rel="stylesheet" href="./owner-demo.css" />
   <link rel="stylesheet" href="./editorial-theme.css" />
   <link rel="stylesheet" href="./verification.css" />
+  <link rel="stylesheet" href="./decision-workspace.css" />
 </head>
 <body>
   <a class="skip-link" href="#analysis-summary">Skip to analysis</a>
@@ -55,6 +56,7 @@
     <section class="shell intelligence-layer" aria-label="Decision intelligence summary">
       <article id="decision-brief" class="intelligence-card decision-brief"></article>
       <article id="evidence-quality" class="intelligence-card evidence-quality"></article>
+      <article id="entity-identity" class="intelligence-card entity-identity"></article>
     </section>
 
     <section class="shell intelligence-layer lower" aria-label="Financial decision support">
@@ -104,6 +106,11 @@
       </aside>
     </section>
 
+    <section class="shell decision-evidence-layer" aria-label="Decision evidence workspace">
+      <article id="turning-points" class="workspace-card"></article>
+      <article id="contradictions" class="workspace-card"></article>
+    </section>
+
     <section class="shell findings-section" aria-labelledby="findings-title">
       <div class="section-heading compact"><div><p class="eyebrow">Cross-company patterns</p><h2 id="findings-title">What changed outcomes in the fixture</h2></div><p class="section-note">Findings distinguish observation, correlation, evidence-supported explanation, and analytical inference.</p></div>
       <div id="findings-grid" class="findings-grid"></div>
@@ -112,6 +119,11 @@
     <section id="lessons" class="shell lessons-section" aria-labelledby="lessons-title">
       <div class="section-heading"><div><p class="eyebrow">Prioritized output</p><h2 id="lessons-title">Top 10 lessons for the business decision</h2></div><p class="section-note">Every lesson carries a confidence class and evidence references. Unsupported recommendations do not belong here.</p></div>
       <ol id="lesson-list" class="lesson-list"></ol>
+    </section>
+
+    <section class="shell decision-actions-layer" aria-label="Recommendation actions and analytical limits">
+      <article id="recommendation-ledger" class="workspace-card"></article>
+      <article id="method-limitations" class="workspace-card"></article>
     </section>
 
     <section id="technical-command-center" class="shell command-center" aria-labelledby="command-title">

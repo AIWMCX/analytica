@@ -60,3 +60,15 @@ test('decision brief has an explainable recommendation interaction rather than a
   assert.ok(js.includes('/evidence-graph/recommendations/'));
   assert.match(js, /Why are you telling me this\?/);
 });
+
+test('decision workspace surfaces only contracted reliability, financial, and limitation data', () => {
+  for (const id of ['entity-identity', 'turning-points', 'contradictions', 'recommendation-ledger', 'method-limitations']) {
+    assert.ok(html.includes(`id="${id}"`), `missing ${id}`);
+  }
+  for (const name of ['renderEntityIdentity', 'renderTurningPoints', 'renderContradictions', 'renderRecommendationLedger', 'renderMethodLimitations']) {
+    assert.ok(js.includes(name), `missing ${name}`);
+  }
+  assert.ok(js.includes('low_operating_profit'));
+  assert.ok(js.includes('high_operating_profit'));
+  assert.ok(!js.includes('fixture confidence'));
+});

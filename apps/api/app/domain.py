@@ -123,6 +123,8 @@ class FinancialScenarioSummary(BaseModel):
 class SensitivityDriverSummary(BaseModel):
     driver: str
     profit_swing: float = Field(ge=0)
+    low_operating_profit: float
+    high_operating_profit: float
 
 
 class AssumptionRegisterItem(BaseModel):
@@ -130,6 +132,23 @@ class AssumptionRegisterItem(BaseModel):
     value: str
     origin: Literal["CUSTOMER_INPUT", "SOURCE_ESTIMATE", "BENCHMARK", "ANALYST_ASSUMPTION", "DERIVED_CALCULATION"]
     review_status: Literal["ACCEPTED", "PROPOSED", "CALCULATED"]
+    evidence_ids: list[str] = Field(default_factory=list)
+
+
+class EntityIdentitySummary(BaseModel):
+    entity_id: str
+    submitted_name: str
+    geography: str
+    resolution_status: Literal["RESOLVED", "AMBIGUOUS", "UNRESOLVED", "SYNTHETIC_FIXTURE"]
+    eligible_for_customer_delivery: bool
+    detail: str
+
+
+class ContradictionItem(BaseModel):
+    contradiction_id: str
+    subject: str
+    summary: str
+    status: Literal["OPEN", "RESOLVED"]
     evidence_ids: list[str] = Field(default_factory=list)
 
 
@@ -162,6 +181,9 @@ class AnalysisReport(BaseModel):
     financial_scenarios: list[FinancialScenarioSummary]
     sensitivity: list[SensitivityDriverSummary]
     assumptions: list[AssumptionRegisterItem]
+    entity_identity: EntityIdentitySummary
+    contradictions: list[ContradictionItem] = Field(default_factory=list)
+    contradictions_note: str
     system_status: list[SystemStatusItem]
     real_demo_matrix: list[RealDemoItem]
 

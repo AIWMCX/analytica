@@ -14,6 +14,7 @@ from .domain import (
     FinancialScenarioSummary,
     SensitivityDriverSummary,
     AssumptionRegisterItem,
+    EntityIdentitySummary,
     SystemStatusItem,
     RealDemoItem,
 )
@@ -120,7 +121,12 @@ def build_demo_report(analysis_id: str = "demo_packaging_ny_v1", business_activi
             runway_months=item.runway_months,
             reconciliation_passed=item.reconciliation.passed,
         ) for item in scenarios],
-        sensitivity=[SensitivityDriverSummary(driver=item.driver, profit_swing=item.profit_swing) for item in sensitivity],
+        sensitivity=[SensitivityDriverSummary(
+            driver=item.driver,
+            profit_swing=item.profit_swing,
+            low_operating_profit=item.low_operating_profit,
+            high_operating_profit=item.high_operating_profit,
+        ) for item in sensitivity],
         assumptions=[
             AssumptionRegisterItem(metric="Capital expenditure", value="$350,000", origin="CUSTOMER_INPUT", review_status="ACCEPTED"),
             AssumptionRegisterItem(metric="Expected utilization", value="71%", origin="ANALYST_ASSUMPTION", review_status="ACCEPTED", evidence_ids=["ev_liberty_2024_automation"]),
@@ -128,6 +134,16 @@ def build_demo_report(analysis_id: str = "demo_packaging_ny_v1", business_activi
             AssumptionRegisterItem(metric="Input-cost inflation", value="11%", origin="SOURCE_ESTIMATE", review_status="PROPOSED", evidence_ids=["ev_northstar_2021_margin"]),
             AssumptionRegisterItem(metric="Break-even utilization", value=f"{scenarios[1].break_even_utilization:.1%}", origin="DERIVED_CALCULATION", review_status="CALCULATED"),
         ],
+        entity_identity=EntityIdentitySummary(
+            entity_id="fixture_target_packaging_ny",
+            submitted_name="Packaging manufacturing expansion case",
+            geography="New York, United States",
+            resolution_status="SYNTHETIC_FIXTURE",
+            eligible_for_customer_delivery=False,
+            detail="This is a synthetic owner-demo entity. Production delivery requires a resolved legal entity and reviewer approval.",
+        ),
+        contradictions=[],
+        contradictions_note="No contradiction records were supplied by this synthetic fixture. This absence is not confirmation that real-world evidence is consistent.",
         system_status=[
             SystemStatusItem(capability="Analytica report UI", state="working", truth="Browser-visible and interactive"),
             SystemStatusItem(capability="Predicta API contract", state="working", truth="predicta.search.v1; local production baseline verified"),

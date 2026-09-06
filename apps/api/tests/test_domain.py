@@ -27,3 +27,11 @@ class DomainFixtureTests(unittest.TestCase):
         self.assertGreaterEqual(len(self.report.assumptions), 4)
         self.assertTrue(any(item.origin == "SOURCE_ESTIMATE" and item.review_status == "PROPOSED" for item in self.report.assumptions))
         self.assertTrue(any(item.state == "blocked" for item in self.report.system_status))
+
+    def test_decision_workspace_contract_exposes_identity_limits_and_signed_sensitivity(self):
+        self.assertEqual(self.report.entity_identity.resolution_status, "SYNTHETIC_FIXTURE")
+        self.assertFalse(self.report.entity_identity.eligible_for_customer_delivery)
+        self.assertEqual(self.report.contradictions, [])
+        self.assertIn("No contradiction records", self.report.contradictions_note)
+        for driver in self.report.sensitivity:
+            self.assertLess(driver.low_operating_profit, driver.high_operating_profit)
