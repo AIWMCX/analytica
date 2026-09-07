@@ -211,3 +211,4 @@ The prototype intentionally uses SQLite and a lightweight in-process worker beca
 ## Paid-launch rule
 
 Do not represent this branch as a paid-production release. It is a **workable MVP prototype** that proves the product surface and engineering boundaries. Paid launch becomes credible after the real-data, security, payment, delivery and production-operations gates are verified.
+<!-- trigger Cloudflare staging deployment -->
