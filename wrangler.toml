@@ -1,0 +1,8 @@
+name = "analytica-public-preview"
+main = "cloudflare/worker.mjs"
+compatibility_date = "2026-09-19"
+workers_dev = true
+
+[assets]
+directory = "./apps/web-preview"
+binding = "ASSETS"
