@@ -14,6 +14,7 @@ class CloudflareWorkerContractTests(unittest.TestCase):
         self.assertTrue(config_path.exists(), "Cloudflare needs a root wrangler.toml")
 
         config = tomllib.loads(config_path.read_text(encoding="utf-8"))
+        self.assertEqual(config["name"], "analyticajeltovbogdanworkersdev")
         self.assertEqual(config["main"], "cloudflare/worker.mjs")
         self.assertEqual(config["assets"]["directory"], "./apps/web-preview")
         self.assertEqual(config["assets"]["binding"], "ASSETS")
